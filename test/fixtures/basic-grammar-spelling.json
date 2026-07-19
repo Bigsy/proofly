@@ -1,0 +1,12 @@
+{
+  "_provenance": "RECORDED from Chrome Beta 150.0.7871.4 on 2026-06-04 via the MCP dev loop (JSON.stringify of the live proofread() result). Do not hand-edit — re-record instead.",
+  "_options": { "includeCorrectionTypes": true, "includeCorrectionExplanations": true, "expectedInputLanguages": ["en"] },
+  "input": "I seen him yesterday at the store, and he bought two loafs of bread.",
+  "result": {
+    "correctedInput": "I saw him yesterday at the store, and he bought two loaves of bread.",
+    "corrections": [
+      { "correction": "saw", "endIndex": 6, "startIndex": 2, "types": ["grammar"] },
+      { "correction": "loaves", "endIndex": 58, "startIndex": 53, "types": ["spelling"] }
+    ]
+  }
+}

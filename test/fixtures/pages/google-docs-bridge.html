@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Proofly fixture - Google Docs bridge</title>
+  <style>
+    body { font: 16px/1.5 sans-serif; margin: 40px; }
+    #field { border: 1px solid #999; min-height: 120px; padding: 10px; }
+  </style>
+</head>
+<body>
+  <div id="field" data-proofly-google-docs-root="true" tabindex="0"></div>
+  <script type="module">
+    import { createBridgeResponder } from "/page/content/bridge/main.js";
+
+    const root = document.querySelector("#field");
+    window.__fixture = {
+      rawText: "I seen\uE000it.",
+      revision: "r1",
+      layoutRevision: "l1",
+      replaceCalls: [],
+      readOnly: false,
+      visualOnly: false,
+      render() {
+        root.textContent = window.__fixture.rawText.replaceAll("\uE000", "\n").replaceAll("\uE001", "");
+      },
+      logicalText() {
+        return window.__fixture.rawText.replaceAll("\uE000", "\n").replaceAll("\uE001", "");
+      },
+      mutateStale() {
+        window.__fixture.rawText = "I see\uE000it.";
+        window.__fixture.revision = "stale";
+        window.__fixture.render();
+      },
+    };
+    window.__fixture.render();
+
+    window.__fixture.responder = createBridgeResponder({
+      handlers: {
+        "docs.read": async () => ({
+          rawText: window.__fixture.rawText,
+          revision: window.__fixture.revision,
+          layoutRevision: window.__fixture.layoutRevision,
+          readOnly: window.__fixture.readOnly,
+          visualOnly: window.__fixture.visualOnly,
+          selectionOffset: 3,
+          spans: [{ start: 2, end: 6, rects: [{ left: 10, top: 20, width: 40, height: 12 }] }],
+        }),
+        "docs.replace": async ({ start, end, replacement, expectedText }) => {
+          const logical = window.__fixture.logicalText();
+          window.__fixture.replaceCalls.push({ start, end, replacement, expectedText });
+          if (logical.slice(start, end) !== expectedText) throw new Error("stale span");
+          const next = logical.slice(0, start) + replacement + logical.slice(end);
+          window.__fixture.rawText = next.replaceAll("\n", "\uE000");
+          window.__fixture.revision = `r${window.__fixture.replaceCalls.length + 1}`;
+          window.__fixture.render();
+          return { ok: true };
+        },
+      },
+    });
+  </script>
+</body>
+</html>

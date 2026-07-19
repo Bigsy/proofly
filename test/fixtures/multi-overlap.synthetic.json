@@ -1,0 +1,13 @@
+{
+  "_provenance": "SYNTHETIC — hand-constructed; the model won't reliably emit overlapping spans. Exercises usableSpans: corrections arrive unsorted; [5,9) starts exactly at [2,5)'s end (adjacent → kept); [17,26) starts inside [13,20) (overlap → dropped from the backdrop, still listed).",
+  "input": "I has ran to the the store.",
+  "result": {
+    "correctedInput": "I have run to the store.",
+    "corrections": [
+      { "correction": "the", "endIndex": 20, "startIndex": 13, "types": ["grammar"] },
+      { "correction": "have", "endIndex": 5, "startIndex": 2, "types": ["grammar"] },
+      { "correction": " run", "endIndex": 9, "startIndex": 5, "types": ["grammar"] },
+      { "correction": "store", "endIndex": 26, "startIndex": 17, "types": ["spelling"] }
+    ]
+  }
+}

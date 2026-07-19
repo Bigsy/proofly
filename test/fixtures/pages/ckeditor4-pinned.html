@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Proofly fixture - CKEditor 4 pinned</title>
+  <style>
+    body { font: 16px/1.5 sans-serif; margin: 40px; }
+  </style>
+  <script src="/node_modules/ckeditor4/ckeditor.js"></script>
+</head>
+<body>
+  <textarea id="editor"><p>I seen it.</p></textarea>
+  <script>
+    CKEDITOR.timestamp = "proofly";
+
+    window.__fixture = {
+      editor: null,
+      root: null,
+      ready: false,
+      inputEvents: 0,
+      changes: [],
+      get data() { return window.__fixture.editor?.getData() ?? ""; },
+      undo() {
+        const command = window.__fixture.editor.getCommand("undo");
+        if (!command || command.state === CKEDITOR.TRISTATE_DISABLED) return false;
+        window.__fixture.editor.execCommand("undo");
+        return true;
+      },
+      nativeUndo() {
+        window.__fixture.root.focus();
+        return window.__fixture.root.ownerDocument.execCommand("undo");
+      },
+      redo() {
+        const command = window.__fixture.editor.getCommand("redo");
+        if (!command || command.state === CKEDITOR.TRISTATE_DISABLED) return false;
+        window.__fixture.editor.execCommand("redo");
+        return true;
+      },
+      nativeRedo() {
+        window.__fixture.root.focus();
+        return window.__fixture.root.ownerDocument.execCommand("redo");
+      },
+    };
+
+    const editor = CKEDITOR.replace("editor", {
+      allowedContent: true,
+      extraPlugins: "undo",
+      height: 140,
+      removePlugins: "elementspath,magicline,resize",
+      toolbar: [],
+      title: false,
+    });
+
+    editor.on("instanceReady", () => {
+      const root = editor.editable().$;
+      root.id = "field";
+      root.dataset.prooflyCkeditor4Root = "true";
+      root.addEventListener("input", () => { window.__fixture.inputEvents += 1; });
+      editor.on("change", () => {
+        window.__fixture.changes.push(editor.getData());
+      });
+      window.__fixture.editor = editor;
+      window.__fixture.root = root;
+      window.__fixture.ready = true;
+    });
+  </script>
+</body>
+</html>

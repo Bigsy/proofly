@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Proofly fixture - Slate pinned</title>
+  <style>
+    body { font: 16px/1.5 sans-serif; margin: 40px; }
+    #field {
+      border: 1px solid #999;
+      min-height: 120px;
+      padding: 10px;
+      white-space: pre-wrap;
+    }
+  </style>
+  <script type="importmap">
+    {
+      "imports": {
+        "is-plain-object": "/node_modules/is-plain-object/dist/is-plain-object.mjs",
+        "slate": "/node_modules/slate/dist/index.es.js",
+        "slate-history": "/node_modules/slate-history/dist/index.es.js"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id="field" contenteditable="true" role="textbox" aria-multiline="true" data-slate-editor="true"></div>
+  <script type="module">
+    import { Editor, Transforms, createEditor } from "slate";
+    import { HistoryEditor, withHistory } from "slate-history";
+
+    const root = document.querySelector("#field");
+    const editor = withHistory(createEditor());
+    editor.children = [{ type: "paragraph", children: [{ text: "I seen it." }] }];
+
+    function slateText() {
+      return Editor.string(editor, []);
+    }
+
+    function renderFromSlate() {
+      const text = slateText();
+      const p = document.createElement("p");
+      p.setAttribute("data-slate-node", "element");
+      const span = document.createElement("span");
+      span.setAttribute("data-slate-node", "text");
+      span.textContent = text;
+      p.append(span);
+      root.replaceChildren(p);
+    }
+
+    function replaceSlateText(nextText) {
+      const oldText = slateText();
+      HistoryEditor.withNewBatch(editor, () => {
+        Transforms.select(editor, {
+          anchor: { path: [0, 0], offset: 0 },
+          focus: { path: [0, 0], offset: oldText.length },
+        });
+        Transforms.delete(editor);
+        Transforms.insertText(editor, nextText);
+      });
+    }
+
+    function domSelectionOffset() {
+      const selection = getSelection();
+      if (!selection?.rangeCount || !root.contains(selection.anchorNode)) return null;
+      const before = document.createRange();
+      before.selectNodeContents(root);
+      before.setEnd(selection.anchorNode, selection.anchorOffset);
+      return { offset: before.toString().length, collapsed: selection.isCollapsed };
+    }
+
+    window.__fixture = {
+      editor,
+      root,
+      ready: false,
+      inputEvents: 0,
+      updates: [],
+      get domText() { return root.textContent; },
+      get stateText() { return slateText(); },
+      get selection() { return domSelectionOffset(); },
+      undo() {
+        HistoryEditor.undo(editor);
+        renderFromSlate();
+        return true;
+      },
+      redo() {
+        HistoryEditor.redo(editor);
+        renderFromSlate();
+        return true;
+      },
+      textNodeContaining(value) {
+        const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+        let node;
+        while ((node = walker.nextNode())) {
+          if (node.nodeValue.includes(value)) return node;
+        }
+        return null;
+      },
+    };
+
+    root.addEventListener("input", () => {
+      window.__fixture.inputEvents += 1;
+      replaceSlateText(root.textContent);
+      window.__fixture.updates.push(slateText());
+    });
+
+    renderFromSlate();
+    window.__fixture.ready = true;
+  </script>
+</body>
+</html>

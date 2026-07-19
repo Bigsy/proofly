@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Proofly</title>
+    <link rel="stylesheet" href="sidepanel.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="topbar__bar">
+        <!-- Back to the notes library — shown only in the editor view (see the
+             router in sidepanel.js). Material arrow_back glyph. -->
+        <button id="backBtn" class="btn btn--icon back-btn" title="Back to notes" aria-label="Back to notes" hidden>
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20z"/></svg>
+        </button>
+        <h1>Proof<span>ly</span></h1>
+        <div id="status" class="status status--warn">
+          <span class="dot"></span>
+          <span id="statusText">Checking availability…</span>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <!-- Library view: the saved-notes list. Hidden when the editor is open. -->
+      <section id="library" class="library" hidden>
+        <div class="library__head">
+          <h2>Docs</h2>
+          <span id="syncStatusLine" class="library__sync" hidden></span>
+          <button id="newDocBtn" class="btn btn--primary btn--sm">New doc</button>
+        </div>
+        <input id="docSearch" class="library__search" type="search" placeholder="Search notes…" />
+        <p id="docEmpty" class="placeholder" hidden></p>
+        <div id="docList" class="doc-list"></div>
+        <footer id="apiSetup" class="library__api-setup" aria-label="Chrome AI setup"></footer>
+      </section>
+
+      <!-- Editor view: the proofreading editor. Hidden when the library is open. -->
+      <div id="editor-view" class="editor-view">
+        <section class="editor-section">
+          <div class="editor-head">
+            <label for="editor">Editor</label>
+            <div class="editor-head__tools">
+              <!-- Inline SVGs (Material undo/redo): arrow glyphs like ↶/↩ render
+                   as clipped hooks or emoji depending on the platform font. -->
+              <button id="undoBtn" class="btn btn--icon" title="Undo (⌘Z)" aria-label="Undo" disabled>
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></svg>
+              </button>
+              <button id="redoBtn" class="btn btn--icon" title="Redo (⇧⌘Z)" aria-label="Redo" disabled>
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M18.4 10.6C16.55 8.99 14.15 8 11.5 8c-4.65 0-8.58 3.03-9.96 7.22L3.9 16c1.05-3.19 4.05-5.5 7.6-5.5 1.95 0 3.73.72 5.12 1.88L13 16h9V7l-3.6 3.6z"/></svg>
+              </button>
+              <span id="charCount" class="muted">0 chars</span>
+            </div>
+          </div>
+          <div class="editor-wrap">
+            <div id="backdrop" class="backdrop" aria-hidden="true">
+              <div id="highlights" class="highlights"></div>
+            </div>
+            <textarea
+              id="editor"
+              spellcheck="false"
+              placeholder="Type or paste text here…"
+            ></textarea>
+          </div>
+        </section>
+
+        <section id="empty" class="placeholder">
+          Type something — Proofly proofreads as you type, on-device.
+        </section>
+
+        <section id="results" class="results" hidden>
+          <details id="correctionsDrop" class="corrections-drop">
+            <summary id="summary" class="summary"></summary>
+            <ul id="correctionsList" class="corrections"></ul>
+            <div class="corrections__foot">
+              <button id="applyBtn" class="btn btn--primary btn--sm">Apply all corrections</button>
+            </div>
+          </details>
+        </section>
+
+        <!-- Whole-text tone rewrite (Rewriter API). Flag-gated and optional:
+             stays hidden unless the API is present and available — see
+             initRewriter() in sidepanel.js. -->
+        <details id="rewriteDrop" class="rewrite-drop" hidden>
+          <summary>Rewrite</summary>
+          <div class="rewrite-drop__presets">
+            <button class="btn btn--sm" data-rewrite="more-formal">More formal</button>
+            <button class="btn btn--sm" data-rewrite="more-casual">More casual</button>
+            <button class="btn btn--sm" data-rewrite="shorter">Shorter</button>
+            <button class="btn btn--sm" data-rewrite="longer">Longer</button>
+            <!-- Saved custom prompts (chrome.storage.sync) render here, in the
+                 same row as the presets (display: contents) — see
+                 renderCustomPrompts() in sidepanel.js. -->
+            <span id="customPromptList" class="rewrite-drop__customs"></span>
+            <button id="newPromptBtn" class="btn btn--sm">New custom prompt…</button>
+          </div>
+          <!-- Inline create form for a custom prompt. Duplicate names
+               overwrite — that's also how you edit a saved prompt. -->
+          <div id="promptForm" class="prompt-form" hidden>
+            <input id="promptName" type="text" placeholder="Name (e.g. More diplomatic)" />
+            <textarea id="promptInstruction" rows="2"
+              placeholder="Instruction (e.g. Rewrite this more diplomatically)"></textarea>
+            <div class="prompt-form__actions">
+              <button id="promptSave" class="btn btn--primary btn--sm">Save</button>
+              <button id="promptCancel" class="btn btn--sm">Cancel</button>
+              <span id="promptError" class="prompt-form__error" hidden></span>
+            </div>
+          </div>
+        </details>
+
+        <details class="options">
+          <summary>Options</summary>
+          <div class="options__grid">
+            <label class="field">
+              <span>Proofreading dialect</span>
+              <select id="proofingDialect">
+                <option value="auto">Auto</option>
+                <option value="american">American</option>
+                <option value="british">British</option>
+                <option value="australian">Australian</option>
+                <option value="canadian">Canadian</option>
+                <option value="indian">Indian</option>
+              </select>
+            </label>
+          </div>
+          <div class="options__dict">
+            <!-- The custom dictionary (words Proofly stops flagging) lives on
+                 the options page — a real tab you can scroll and paste into. -->
+            <button id="manageDictBtn" class="btn btn--sm" type="button">Manage dictionary…</button>
+          </div>
+        </details>
+      </div>
+    </main>
+
+    <!-- Floating suggestion popup, anchored at the clicked underline -->
+    <div id="popup" class="popup" hidden></div>
+
+    <!-- Transient undo affordance after big programmatic replacements (Apply all) -->
+    <div id="toast" class="toast" hidden>
+      <span id="toastText"></span>
+      <button id="toastUndo" class="btn btn--sm">Undo</button>
+    </div>
+
+    <script type="module" src="sidepanel.js"></script>
+  </body>
+</html>

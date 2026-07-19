@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Proofly fixture - origin fallback iframes</title>
+  <style>
+    body { font: 16px/1.5 sans-serif; margin: 32px; }
+    textarea { width: 480px; height: 90px; display: block; margin-bottom: 24px; }
+    iframe { width: 560px; height: 220px; border: 1px solid #999; margin-right: 16px; }
+  </style>
+</head>
+<body>
+  <h1>Origin-fallback iframes</h1>
+  <textarea id="field"></textarea>
+  <iframe id="about-blank"></iframe>
+  <iframe
+    id="srcdoc"
+    srcdoc='<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Proofly srcdoc child</title><style>body{font:16px/1.5 sans-serif;margin:24px}textarea{width:420px;height:90px}</style></head><body><textarea id="field"></textarea></body></html>'>
+  </iframe>
+  <script>
+    const frame = document.getElementById("about-blank");
+    const doc = frame.contentDocument;
+    doc.open();
+    doc.write(`<!doctype html>
+      <html lang="en">
+      <head>
+        <meta charset="utf-8">
+        <title>Proofly about blank child</title>
+        <style>
+          body { font: 16px/1.5 sans-serif; margin: 24px; }
+          textarea { width: 420px; height: 90px; }
+        </style>
+      </head>
+      <body>
+        <textarea id="field"></textarea>
+      </body>
+      </html>`);
+    doc.close();
+  </script>
+</body>
+</html>

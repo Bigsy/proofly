@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Proofly fixture — controlled input (React-style)</title>
+  <style>
+    body { font: 16px/1.5 sans-serif; margin: 40px; max-width: 640px; }
+    textarea { width: 100%; height: 120px; font: inherit; padding: 10px; }
+    #state { color: #555; font-size: 14px; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <h1>Controlled input</h1>
+  <p>Mimics React's <code>inputValueTracking</code>: the field's
+     <code>value</code> property is shadowed on the instance, and input events
+     whose value the tracker already saw are <em>deduped</em> (the framework
+     ignores them). Apply must write through the <strong>native prototype
+     setter</strong> — anything else shows up below as a dedupe.</p>
+  <textarea id="field"></textarea>
+  <p id="state"></p>
+
+  <script>
+    const field = document.getElementById("field");
+    const stateEl = document.getElementById("state");
+    const native = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value");
+
+    // The framework's value tracker, installed on the INSTANCE.
+    let tracked = native.get.call(field);
+    Object.defineProperty(field, "value", {
+      configurable: true,
+      get() { return native.get.call(this); },
+      set(v) { tracked = String(v); native.set.call(this, v); },
+    });
+
+    // The framework's change pipeline: dedupe against the tracker, then
+    // adopt the new value as state ("controlled" re-render).
+    let state = tracked;
+    const log = [];
+    field.addEventListener("input", () => {
+      const v = native.get.call(field);
+      if (v === tracked) {
+        log.push({ type: "deduped", value: v }); // a real framework would ignore this edit
+      } else {
+        tracked = v;
+        state = v;
+        log.push({ type: "change", value: v });
+      }
+      stateEl.textContent = `framework state: ${JSON.stringify(state)}\n` +
+        log.map((e) => `${e.type}: ${JSON.stringify(e.value)}`).join("\n");
+    });
+
+    window.__fixture = {
+      log,
+      frameworkState: () => state,
+      get inputEvents() { return log.length; },
+    };
+  </script>
+</body>
+</html>

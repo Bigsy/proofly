@@ -1,0 +1,11 @@
+{
+  "_provenance": "RECORDED from Chrome Beta 150.0.7871.4 on 2026-06-04 via the MCP dev loop (JSON.stringify of the live proofread() result). Do not hand-edit — re-record instead.",
+  "_options": { "includeCorrectionTypes": true, "includeCorrectionExplanations": true, "expectedInputLanguages": ["en"] },
+  "input": "After visiting France I went home.",
+  "result": {
+    "correctedInput": "After visiting France, I went home.",
+    "corrections": [
+      { "correction": ",", "endIndex": 21, "startIndex": 21, "types": ["punctuation"] }
+    ]
+  }
+}

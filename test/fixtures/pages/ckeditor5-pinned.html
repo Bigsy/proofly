@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Proofly fixture - CKEditor 5 pinned</title>
+  <link rel="stylesheet" href="/node_modules/ckeditor5/dist/browser/ckeditor5.css" />
+  <style>
+    body { font: 16px/1.5 sans-serif; margin: 40px; }
+    .ck-editor__editable { min-height: 120px; }
+  </style>
+</head>
+<body>
+  <div id="editor"></div>
+  <script type="module">
+    function modelText(editor) {
+      const root = editor.model.document.getRoot();
+      let text = "";
+      for (const item of editor.model.createRangeIn(root).getItems()) {
+        if (item.is("$textProxy")) text += item.data;
+      }
+      return text;
+    }
+
+    window.__fixture = {
+      editor: null,
+      root: null,
+      inputEvents: 0,
+      modelChanges: [],
+      ready: false,
+      get domText() { return window.__fixture.root?.textContent ?? ""; },
+      get data() { return window.__fixture.editor?.getData() ?? ""; },
+      get modelText() { return window.__fixture.editor ? modelText(window.__fixture.editor) : ""; },
+      get selection() {
+        const selection = window.__fixture.editor.model.document.selection;
+        return {
+          isCollapsed: selection.isCollapsed,
+          anchorPath: selection.anchor.path,
+          focusPath: selection.focus.path,
+        };
+      },
+      undo() {
+        const command = window.__fixture.editor.commands.get("undo");
+        if (!command?.isEnabled) return false;
+        window.__fixture.editor.execute("undo");
+        return true;
+      },
+      redo() {
+        const command = window.__fixture.editor.commands.get("redo");
+        if (!command?.isEnabled) return false;
+        window.__fixture.editor.execute("redo");
+        return true;
+      },
+      textNodeContaining(value) {
+        const walker = document.createTreeWalker(window.__fixture.root, NodeFilter.SHOW_TEXT);
+        let node;
+        while ((node = walker.nextNode())) {
+          if (node.nodeValue.includes(value)) return node;
+        }
+        return null;
+      },
+    };
+
+    const {
+      Bold,
+      ClassicEditor,
+      Essentials,
+      Italic,
+      Paragraph,
+    } = await import("/node_modules/ckeditor5/dist/browser/ckeditor5.js");
+
+    ClassicEditor.create(document.querySelector("#editor"), {
+      licenseKey: "GPL",
+      plugins: [Essentials, Paragraph, Bold, Italic],
+      toolbar: [],
+      initialData: "<p>I seen it.</p>",
+    }).then((editor) => {
+      const root = editor.editing.view.getDomRoot();
+      root.id = "field";
+      document.addEventListener("input", () => {
+        window.__fixture.inputEvents += 1;
+      }, { capture: true });
+      editor.model.document.on("change:data", () => {
+        window.__fixture.modelChanges.push(modelText(editor));
+      });
+      window.__fixture.editor = editor;
+      window.__fixture.root = root;
+      window.__fixture.ready = true;
+    }).catch((error) => {
+      window.__fixture.error = error.message;
+      throw error;
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Proofly fixture - DraftJS pinned</title>
+  <link rel="stylesheet" href="/node_modules/draft-js/dist/Draft.css" />
+  <style>
+    body { font: 16px/1.5 sans-serif; margin: 40px; }
+    #mount {
+      border: 1px solid #999;
+      min-height: 120px;
+      padding: 10px;
+      white-space: pre-wrap;
+    }
+  </style>
+  <script src="/node_modules/immutable/dist/immutable.js"></script>
+  <script src="/node_modules/react/umd/react.development.js"></script>
+  <script src="/node_modules/react-dom/umd/react-dom.development.js"></script>
+  <script src="/node_modules/draft-js/dist/Draft.js"></script>
+</head>
+<body>
+  <div id="mount"></div>
+  <script>
+    const {
+      ContentState,
+      Editor,
+      EditorState,
+    } = window.Draft;
+
+    function textOf(editorState) {
+      return editorState.getCurrentContent().getPlainText();
+    }
+
+    function domSelectionOffset(root) {
+      const selection = getSelection();
+      if (!selection?.rangeCount || !root?.contains(selection.anchorNode)) return null;
+      const before = document.createRange();
+      before.selectNodeContents(root);
+      before.setEnd(selection.anchorNode, selection.anchorOffset);
+      return { offset: before.toString().length, collapsed: selection.isCollapsed };
+    }
+
+    window.__fixture = {
+      editorState: null,
+      root: null,
+      ready: false,
+      inputEvents: 0,
+      updates: [],
+      get stateText() { return window.__fixture.editorState ? textOf(window.__fixture.editorState) : ""; },
+      get domText() { return window.__fixture.root?.textContent ?? ""; },
+      get selection() { return domSelectionOffset(window.__fixture.root); },
+      undo() {
+        window.__fixture.setEditorState(EditorState.undo(window.__fixture.editorState));
+        return true;
+      },
+      redo() {
+        window.__fixture.setEditorState(EditorState.redo(window.__fixture.editorState));
+        return true;
+      },
+      textNodeContaining(value) {
+        const walker = document.createTreeWalker(window.__fixture.root, NodeFilter.SHOW_TEXT);
+        let node;
+        while ((node = walker.nextNode())) {
+          if (node.nodeValue.includes(value)) return node;
+        }
+        return null;
+      },
+    };
+
+    function App() {
+      const [editorState, setEditorState] = React.useState(() =>
+        EditorState.createWithContent(ContentState.createFromText("I seen it.")));
+
+      window.__fixture.setEditorState = setEditorState;
+
+      React.useLayoutEffect(() => {
+        const root = document.querySelector(".public-DraftEditor-content");
+        if (!root) return;
+        root.id = "field";
+        if (!root.dataset.prooflyDraftInputCounter) {
+          root.dataset.prooflyDraftInputCounter = "true";
+          root.addEventListener("input", () => { window.__fixture.inputEvents += 1; });
+        }
+        window.__fixture.root = root;
+        window.__fixture.editorState = editorState;
+        window.__fixture.updates.push(textOf(editorState));
+        window.__fixture.ready = true;
+      }, [editorState]);
+
+      return React.createElement(Editor, {
+        editorState,
+        onChange(next) {
+          setEditorState(next);
+        },
+        spellCheck: false,
+      });
+    }
+
+    ReactDOM.createRoot(document.querySelector("#mount"))
+      .render(React.createElement(App));
+  </script>
+</body>
+</html>

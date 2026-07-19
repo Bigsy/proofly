@@ -1,0 +1,9 @@
+{
+  "_provenance": "RECORDED from Chrome Beta 150.0.7871.4 on 2026-06-04 via the MCP dev loop (JSON.stringify of the live proofread() result). Do not hand-edit — re-record instead.",
+  "_options": { "includeCorrectionTypes": true, "includeCorrectionExplanations": true, "expectedInputLanguages": ["en"] },
+  "input": "The quick brown fox jumps over the lazy dog.",
+  "result": {
+    "correctedInput": "The quick brown fox jumps over the lazy dog.",
+    "corrections": []
+  }
+}

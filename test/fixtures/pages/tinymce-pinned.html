@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Proofly fixture - TinyMCE pinned</title>
+  <style>
+    body { font: 16px/1.5 sans-serif; margin: 40px; }
+    textarea { width: 680px; min-height: 160px; }
+  </style>
+  <script src="/node_modules/tinymce/tinymce.min.js"></script>
+</head>
+<body>
+  <textarea id="editor"><p>I seen it.</p></textarea>
+  <script>
+    window.__fixture = {
+      editor: null,
+      root: null,
+      ready: false,
+      inputEvents: 0,
+      changes: [],
+      get data() { return window.__fixture.editor?.getContent() ?? ""; },
+      get text() { return window.__fixture.editor?.getContent({ format: "text" }) ?? ""; },
+      get selection() {
+        const root = window.__fixture.root;
+        const selection = root?.ownerDocument?.defaultView?.getSelection?.();
+        if (!root || !selection?.rangeCount || !root.contains(selection.anchorNode)) return null;
+        const before = root.ownerDocument.createRange();
+        before.selectNodeContents(root);
+        before.setEnd(selection.anchorNode, selection.anchorOffset);
+        return { offset: before.toString().length, collapsed: selection.isCollapsed };
+      },
+      undo() {
+        window.__fixture.root.focus();
+        return window.__fixture.root.ownerDocument.execCommand("undo");
+      },
+      redo() {
+        window.__fixture.root.focus();
+        return window.__fixture.root.ownerDocument.execCommand("redo");
+      },
+      textNodeContaining(value) {
+        const walker = window.__fixture.root.ownerDocument.createTreeWalker(window.__fixture.root, NodeFilter.SHOW_TEXT);
+        let node;
+        while ((node = walker.nextNode())) {
+          if (node.nodeValue.includes(value)) return node;
+        }
+        return null;
+      },
+    };
+
+    tinymce.init({
+      selector: "#editor",
+      base_url: "/node_modules/tinymce",
+      license_key: "gpl",
+      promotion: false,
+      branding: false,
+      menubar: false,
+      toolbar: false,
+      statusbar: false,
+      height: 220,
+      plugins: [],
+      setup(editor) {
+        editor.on("init", () => {
+          const root = editor.getBody();
+          root.id = "field";
+          root.addEventListener("input", () => { window.__fixture.inputEvents += 1; });
+          editor.on("change input undo redo", () => {
+            window.__fixture.changes.push(editor.getContent());
+          });
+          window.__fixture.editor = editor;
+          window.__fixture.root = root;
+          window.__fixture.ready = true;
+        });
+      },
+    }).catch((error) => {
+      window.__fixture.error = error.message;
+      throw error;
+    });
+  </script>
+</body>
+</html>

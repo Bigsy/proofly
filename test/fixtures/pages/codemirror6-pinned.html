@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Proofly fixture - CodeMirror 6 pinned</title>
+  <style>
+    body { font: 16px/1.5 sans-serif; margin: 40px; }
+    #mount { border: 1px solid #999; min-height: 120px; }
+    .cm-editor { min-height: 120px; }
+    .cm-content { min-height: 120px; padding: 10px; }
+  </style>
+  <script type="importmap">
+    {
+      "imports": {
+        "@codemirror/commands": "/node_modules/@codemirror/commands/dist/index.js",
+        "@codemirror/language": "/node_modules/@codemirror/language/dist/index.js",
+        "@codemirror/state": "/node_modules/@codemirror/state/dist/index.js",
+        "@codemirror/view": "/node_modules/@codemirror/view/dist/index.js",
+        "@lezer/common": "/node_modules/@lezer/common/dist/index.js",
+        "@lezer/highlight": "/node_modules/@lezer/highlight/dist/index.js",
+        "@lezer/lr": "/node_modules/@lezer/lr/dist/index.js",
+        "@marijn/find-cluster-break": "/node_modules/@marijn/find-cluster-break/src/index.js",
+        "crelt": "/node_modules/crelt/index.js",
+        "style-mod": "/node_modules/style-mod/src/style-mod.js",
+        "w3c-keyname": "/node_modules/w3c-keyname/index.js"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id="mount"></div>
+  <script type="module">
+    import { history, redo, undo } from "@codemirror/commands";
+    import { EditorState } from "@codemirror/state";
+    import { EditorView } from "@codemirror/view";
+    import { createBridgeResponder } from "/page/content/bridge/main.js";
+
+    const params = new URLSearchParams(location.search);
+    const language = params.get("language") || "markdown";
+    const mount = document.querySelector("#mount");
+    let root = null;
+
+    const view = new EditorView({
+      parent: mount,
+      state: EditorState.create({
+        doc: "I seen it.",
+        extensions: [
+          history(),
+          EditorView.updateListener.of((update) => {
+            if (update.docChanged) window.__fixture.updates.push(view.state.doc.toString());
+          }),
+        ],
+      }),
+    });
+
+    root = view.dom.querySelector(".cm-content");
+    root.id = "field";
+    root.dataset.language = language;
+    view.dom.dataset.language = language;
+
+    function domSelectionOffset() {
+      const selection = getSelection();
+      if (!selection?.rangeCount || !root.contains(selection.anchorNode)) return null;
+      const before = document.createRange();
+      before.selectNodeContents(root);
+      before.setEnd(selection.anchorNode, selection.anchorOffset);
+      return { offset: before.toString().length, collapsed: selection.isCollapsed };
+    }
+
+    window.__fixture = {
+      view,
+      root,
+      ready: true,
+      inputEvents: 0,
+      updates: [],
+      get domText() { return root.textContent; },
+      get stateText() { return view.state.doc.toString(); },
+      get selection() { return { offset: view.state.selection.main.head, collapsed: view.state.selection.main.empty }; },
+      get domSelection() { return domSelectionOffset(); },
+      setLanguage(next) {
+        root.dataset.language = next;
+        view.dom.dataset.language = next;
+      },
+      undo() { return undo(view); },
+      redo() { return redo(view); },
+      textNodeContaining(value) {
+        const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+        let node;
+        while ((node = walker.nextNode())) {
+          if (node.nodeValue.includes(value)) return node;
+        }
+        return null;
+      },
+    };
+
+    root.addEventListener("input", () => { window.__fixture.inputEvents += 1; });
+
+    window.__fixture.bridge = createBridgeResponder({
+      handlers: {
+        "codemirror.replace": async ({ start, end, replacement, expectedText, expectedResult }) => {
+          const before = view.state.doc.toString();
+          if (before.slice(start, end) !== expectedText) return { applied: false, text: before };
+          view.dispatch({
+            changes: { from: start, to: end, insert: replacement },
+            selection: { anchor: start + replacement.length },
+          });
+          await new Promise((resolve) => requestAnimationFrame(resolve));
+          const after = view.state.doc.toString();
+          return {
+            applied: after === expectedResult,
+            text: after,
+            selection: view.state.selection.main.head,
+          };
+        },
+      },
+    });
+  </script>
+</body>
+</html>

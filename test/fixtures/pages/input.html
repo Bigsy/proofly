@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Proofly fixture — text input</title>
+  <style>
+    body { font: 16px/1.5 sans-serif; margin: 40px; max-width: 640px; }
+    input { width: 100%; font: inherit; padding: 10px; height: 56px; }
+  </style>
+</head>
+<body>
+  <h1>Single-line text input</h1>
+  <p>No wrapping; long text scrolls horizontally. The extra height checks the
+     mirror's vertical-centring math (inputs centre their text).</p>
+  <input id="field" type="text" />
+
+  <script>
+    window.__fixture = { inputEvents: 0 };
+    document.getElementById("field").addEventListener("input", () => {
+      window.__fixture.inputEvents++;
+    });
+  </script>
+</body>
+</html>

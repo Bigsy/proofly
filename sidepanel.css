@@ -1,0 +1,692 @@
+:root {
+  --bg: #0f1117;
+  --panel: #171a23;
+  --panel-2: #1e222e;
+  --border: #2a2f3d;
+  --text: #e6e8ee;
+  --muted: #8b91a3;
+  --accent: #6366f1;
+  --accent-2: #8b5cf6;
+  --ok: #22c55e;
+  --warn: #f59e0b;
+  --error: #ef4444;
+  --from: #3b1d22;
+  --from-text: #fca5a5;
+  --to: #11301f;
+  --to-text: #86efac;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f6f7fb;
+    --panel: #ffffff;
+    --panel-2: #f0f2f7;
+    --border: #e2e5ee;
+    --text: #1c2030;
+    --muted: #6b7280;
+    --from: #fdecec;
+    --from-text: #b42318;
+    --to: #e7f7ee;
+    --to-text: #027a48;
+  }
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+body { display: flex; flex-direction: column; }
+
+/* ---------- Top bar ---------- */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  padding: 12px 14px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+}
+
+/* Back arrow + wordmark share the first row of the top bar. */
+.topbar__bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.topbar h1 {
+  margin: 0;
+  font-size: 16px;
+  letter-spacing: -0.01em;
+}
+/* btn--icon is inline-flex, which beats the UA's [hidden] rule — restore it. */
+.back-btn[hidden] { display: none; }
+.topbar h1 span {
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.status .dot {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: var(--muted);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--muted) 25%, transparent);
+}
+.status--ok .dot { background: var(--ok); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 25%, transparent); }
+.status--warn .dot { background: var(--warn); box-shadow: 0 0 0 3px color-mix(in srgb, var(--warn) 25%, transparent); }
+.status--error .dot { background: var(--error); box-shadow: 0 0 0 3px color-mix(in srgb, var(--error) 25%, transparent); }
+
+/* ---------- Layout ---------- */
+main {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* The two top-level views. Exactly one is shown; the visible one soaks up all
+   of main's height (so the editor-section's flex:1 still fills the window). */
+.editor-view,
+.library {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.editor-view[hidden],
+.library[hidden] { display: none; }
+
+/* The editor section soaks up all free height, pinning everything after it
+   (corrections, Rewrite, Options — in that order) to the bottom of the
+   window. When a dropdown expands, the editor shrinks first (down to the
+   wrap's min-height); only then does main scroll. */
+.editor-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.editor-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.editor-head label { font-weight: 600; }
+.editor-head__tools { display: flex; align-items: center; gap: 8px; }
+/* Compact undo/redo icon buttons in the editor header. */
+.btn--icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 8px;
+}
+.btn--icon svg { display: block; }
+
+/* The editor is a textarea layered on top of a transparent "backdrop" mirror.
+   The backdrop draws the wavy underlines; the textarea handles all editing.
+   Both layers MUST share identical box metrics so the underlines line up. */
+.editor-wrap {
+  position: relative;
+  flex: 1;
+  min-height: 130px;
+  background: var(--panel);
+  border-radius: 10px;
+}
+
+.backdrop {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 11px 12px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  overflow: hidden;
+  pointer-events: none;
+}
+.highlights {
+  margin: 0;
+  font: inherit;
+  color: transparent;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+.squiggle {
+  text-decoration: underline;
+  text-decoration-style: wavy;
+  text-decoration-color: var(--harper-kind-color, var(--error));
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
+textarea {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  height: 100%; /* fills the flex-sized wrap — the window sizes the editor */
+  resize: none;
+  margin: 0;
+  padding: 11px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  outline: none;
+}
+textarea:focus { border-color: var(--accent); }
+textarea::placeholder { color: var(--muted); }
+
+/* ---------- Undo toast ---------- */
+.toast {
+  position: fixed;
+  z-index: 60;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.4);
+  font-size: 13px;
+  white-space: nowrap;
+}
+/* `display: flex` above beats the UA's [hidden] rule — restore it. */
+.toast[hidden] { display: none; }
+
+/* ---------- Suggestion popup ---------- */
+.popup {
+  position: fixed;
+  z-index: 50;
+  max-width: 250px;
+  padding: 10px;
+  border-radius: 10px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.4);
+}
+/* Match the in-page popup: compact icon actions live in the top-right rail;
+   replacement chips remain the primary apply affordance. */
+.popup .citem__head { padding-right: 30px; }
+.popup.popup--has-dictionary .citem__head { padding-right: 62px; }
+.popup__actions {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.popup__actions .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px;
+  border-radius: 7px;
+  color: var(--muted);
+}
+.popup__actions .btn svg { width: 14px; height: 14px; display: block; }
+.popup__actions .btn:hover { border-color: var(--accent); color: var(--text); }
+.popup__actions .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ---------- Buttons & inputs ---------- */
+.btn {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  color: var(--text);
+  padding: 8px 14px;
+  border-radius: 9px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.05s ease, filter 0.15s ease;
+}
+.btn:hover { filter: brightness(1.1); }
+.btn:active { transform: translateY(1px); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn--primary { background: var(--accent); border-color: transparent; color: #fff; }
+.btn--accent { background: linear-gradient(90deg, var(--accent), var(--accent-2)); border-color: transparent; color: #fff; }
+
+.switch { display: inline-flex; align-items: center; gap: 7px; cursor: pointer; font-size: 13px; color: var(--muted); }
+.switch input { width: 15px; height: 15px; accent-color: var(--accent); }
+.switch .info { font-size: 12px; opacity: 0.7; cursor: help; }
+
+.field { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
+.field input {
+  padding: 6px 9px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+}
+.field input:focus { outline: none; border-color: var(--accent); }
+
+/* ---------- Rewrite dropdown ---------- */
+/* Same look and behaviour as the Options details below; main's gap spaces
+   the stacked dropdowns. */
+.rewrite-drop {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--panel);
+  padding: 0 12px;
+}
+.rewrite-drop summary {
+  cursor: pointer;
+  padding: 10px 0;
+  font-weight: 600;
+  font-size: 13px;
+}
+.rewrite-drop__presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-bottom: 12px;
+}
+
+/* Saved custom prompts sit in the same flex row as the presets:
+   display: contents makes each .custom-prompt a direct flex sibling. */
+.rewrite-drop__customs { display: contents; }
+.custom-prompt { display: inline-flex; }
+.custom-prompt__run {
+  min-width: 0;
+  max-width: 160px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  border-right-width: 0;
+}
+.custom-prompt__delete {
+  padding: 4px 8px;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  color: var(--muted);
+}
+.custom-prompt__delete:hover { color: var(--error); }
+
+/* Inline "new custom prompt" form. */
+.prompt-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 12px;
+}
+/* `display: flex` above beats the UA's [hidden] rule — restore it. */
+.prompt-form[hidden] { display: none; }
+.prompt-form input,
+.prompt-form textarea {
+  /* The bare `textarea` rule below is sized for the editor overlay —
+     reset the bits that don't fit a small form field. */
+  position: static;
+  width: 100%;
+  height: auto;
+  padding: 6px 9px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  color: var(--text);
+  font: inherit;
+  resize: vertical;
+}
+.prompt-form input:focus,
+.prompt-form textarea:focus { outline: none; border-color: var(--accent); }
+.prompt-form__actions { display: flex; align-items: center; gap: 8px; }
+.prompt-form__error { color: var(--error); font-size: 12px; }
+
+/* ---------- Options ---------- */
+.options {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--panel);
+  padding: 0 12px;
+}
+.options summary {
+  cursor: pointer;
+  padding: 10px 0;
+  font-weight: 600;
+  font-size: 13px;
+}
+.options__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding-bottom: 12px;
+}
+.options__dict { padding-bottom: 12px; }
+.hint { margin: 0 0 12px; font-size: 11px; }
+.muted { color: var(--muted); }
+code { background: var(--panel-2); padding: 1px 5px; border-radius: 5px; font-size: 12px; }
+
+/* ---------- Placeholder ---------- */
+.placeholder {
+  padding: 24px 16px;
+  text-align: center;
+  color: var(--muted);
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  background: var(--panel);
+}
+/* ---------- Results ---------- */
+/* The corrections dropdown — same look and behaviour as the Options details. */
+.corrections-drop {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--panel);
+  padding: 0 12px;
+}
+.corrections-drop summary {
+  cursor: pointer;
+  padding: 10px 0;
+  font-weight: 600;
+}
+/* A clean result has nothing to expand — hide the marker, ignore clicks. */
+.corrections-drop.is-empty summary {
+  cursor: default;
+  pointer-events: none;
+  list-style: none;
+}
+.corrections-drop.is-empty summary::-webkit-details-marker { display: none; }
+
+.btn--sm { padding: 4px 11px; font-size: 12px; }
+
+/* ---------- Corrections list ---------- */
+.corrections { list-style: none; margin: 2px 0 10px; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.corrections__foot { padding-bottom: 12px; }
+.citem {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+}
+.citem.flash { animation: flash 0.9s ease; }
+@keyframes flash {
+  0% { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent); }
+  100% { border-color: var(--border); box-shadow: none; }
+}
+.citem__head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.chip { padding: 2px 8px; border-radius: 7px; font-weight: 600; font-size: 13px; overflow-wrap: anywhere; }
+.chip--from { background: var(--from); color: var(--from-text); text-decoration: line-through; }
+.chip--to { background: var(--to); color: var(--to-text); }
+.arrow { color: var(--muted); }
+.citem__excerpt {
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.badge {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--harper-kind-color, var(--muted));
+  border-color: color-mix(in srgb, var(--harper-kind-color, var(--muted)) 33%, transparent);
+}
+
+.explain { margin: 8px 0 0; color: var(--muted); font-size: 13px; }
+.citem__suggestions {
+  display: flex; flex-wrap: wrap; gap: 5px; margin: 8px 0 0; padding: 0; border: 0;
+}
+.citem__suggestions-label { width: 100%; color: var(--muted); font-size: 11px; }
+.citem__suggestion {
+  appearance: none; display: inline-flex; align-items: center; padding: 3px 7px;
+  background: transparent; color: inherit; font: inherit;
+  border: 1px solid var(--border); border-radius: 7px; cursor: pointer; font-size: 12px;
+}
+.citem__suggestion:hover { border-color: var(--accent); background: var(--panel); }
+.citem__suggestion:focus-visible, .citem__choice:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.citem__choice { appearance: none; border: 0; font: inherit; cursor: pointer; }
+/* Apply + (for suppressible corrections) Add to dictionary. */
+.citem__foot { margin-top: 10px; display: flex; gap: 8px; }
+.citem__dict { white-space: nowrap; }
+
+/* List cards: let the correction text breathe, with actions in a quiet rail.
+   Only the list gets this layout — the squiggle popup keeps the stacked base
+   .citem pieces after ui/render.js unwraps them into the floating panel. */
+@media (min-width: 380px) {
+  .citem--row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "head actions"
+      "meta actions"
+      "explain actions"
+      "suggestions actions";
+    align-items: start;
+    column-gap: 12px;
+    row-gap: 4px;
+    padding: 8px 10px;
+  }
+  .citem--row .citem__head {
+    grid-area: head;
+    min-width: 0;
+    gap: 6px;
+  }
+  .citem--row .chip {
+    min-width: 0;
+    padding: 0;
+    border-radius: 0;
+    background: transparent;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    line-height: 1.35;
+  }
+  .citem--row .chip--from {
+    color: #fca5a5;
+    text-decoration-thickness: 1px;
+    text-decoration-color: #f87171;
+  }
+  .citem--row .chip--to { color: #86efac; }
+  .citem--row .citem__excerpt { line-height: 1.35; }
+  .citem--row .arrow { flex-shrink: 0; }
+  .citem--row .badges {
+    grid-area: meta;
+    margin: 0;
+    gap: 8px;
+  }
+  .citem--row .badge {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    letter-spacing: 0.02em;
+    text-transform: none;
+    font-size: 11px;
+  }
+  .citem--row .explain {
+    grid-area: explain;
+    min-width: 0;
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.35;
+  }
+  .citem--row .citem__suggestions { grid-area: suggestions; }
+  .citem--row .citem__foot {
+    grid-area: actions;
+    margin: 0;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+  }
+  .citem--row .citem__dict {
+    max-width: 120px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.2;
+    white-space: normal;
+    text-align: right;
+  }
+  .citem--row .citem__dict:hover { color: var(--text); background: transparent; }
+}
+
+/* ---------- Library (notes list) ---------- */
+.library__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.library__head h2 { margin: 0; font-size: 15px; }
+.library__sync {
+  flex: 1;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 11px;
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.library__sync--error { color: var(--error); }
+
+.library__search {
+  padding: 8px 11px;
+  border-radius: 9px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+}
+.library__search:focus { outline: none; border-color: var(--accent); }
+
+.doc-list { display: flex; flex-direction: column; gap: 8px; }
+
+/* Persistent browser-API setup belongs to the Docs shell, not an individual
+   document. margin-top:auto pins it below short lists and follows long ones. */
+.library__api-setup {
+  margin-top: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 11px;
+}
+.library__api-setup strong { color: var(--text); font-size: 12px; }
+.library__api-links { display: block; }
+.library__api-link { color: var(--accent); text-decoration: none; }
+.library__api-link:hover { text-decoration: underline; }
+.library__api-hint { line-height: 1.35; }
+
+.group-heading {
+  margin: 8px 2px 0;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+.group-heading:first-child { margin-top: 0; }
+
+/* A single note card: title, snippet, "Edited …" meta, and a "…" menu. */
+.doc-card {
+  position: relative;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: border-color 0.15s ease, filter 0.15s ease;
+}
+.doc-card:hover { border-color: var(--accent); }
+/* The card is keyboard-focusable (role=button) — mirror the hover affordance,
+   but only for keyboard focus; a mouse click shouldn't leave it outlined. */
+.doc-card:focus-visible { outline: none; border-color: var(--accent); }
+.doc-card__title {
+  font-weight: 600;
+  padding-right: 26px; /* clear the "…" button */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.doc-card__snippet {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.doc-card__meta { margin-top: 6px; color: var(--muted); font-size: 11px; }
+
+/* The per-card "…" actions button + its popover menu. */
+.doc-card__menu-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  padding: 2px 8px;
+  line-height: 1;
+  font-size: 16px;
+  color: var(--muted);
+}
+.doc-menu {
+  position: absolute;
+  z-index: 40;
+  top: 32px;
+  right: 6px;
+  min-width: 140px;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border-radius: 9px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.4);
+}
+.doc-menu button {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  padding: 7px 10px;
+  border-radius: 6px;
+  font: inherit;
+  cursor: pointer;
+}
+.doc-menu button:hover { background: var(--panel-2); }
+.doc-menu__delete { color: var(--error); }
+/* Second click confirms (two-step inline confirm — no native dialog). */
+.doc-menu__delete--confirm {
+  background: var(--error);
+  color: #fff;
+}
+.doc-menu__delete--confirm:hover { background: var(--error); filter: brightness(1.1); }

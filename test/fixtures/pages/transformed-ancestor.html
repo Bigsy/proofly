@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Proofly fixture — transformed ancestor (containing-block trap)</title>
+  <style>
+    body { font: 16px/1.5 sans-serif; margin: 40px; max-width: 640px; }
+    /* Each wrapper turns itself into the containing block for any
+       position: fixed descendant — including, on a naive implementation,
+       Proofly's overlay host. Boxes must NOT drift here. */
+    .transformed { transform: translate(24px, 12px); border: 1px dashed #c66; padding: 16px; }
+    .contained { contain: paint; border: 1px dashed #66c; padding: 16px; margin-top: 24px; }
+    textarea { width: 100%; height: 100px; font: inherit; padding: 10px; }
+  </style>
+</head>
+<body>
+  <h1>Transformed / contained ancestors</h1>
+  <p>The overlay must compensate for ancestors that hijack
+     <code>position: fixed</code> (transform, contain) — the probe-offset math.</p>
+
+  <div class="transformed">
+    <p><code>transform: translate(24px, 12px)</code></p>
+    <textarea id="field"></textarea>
+  </div>
+
+  <div class="contained">
+    <p><code>contain: paint</code></p>
+    <textarea id="field2"></textarea>
+  </div>
+
+  <script>
+    window.__fixture = { inputEvents: 0 };
+    for (const id of ["field", "field2"]) {
+      document.getElementById(id).addEventListener("input", () => {
+        window.__fixture.inputEvents++;
+      });
+    }
+  </script>
+</body>
+</html>

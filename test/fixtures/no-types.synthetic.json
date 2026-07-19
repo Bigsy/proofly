@@ -1,0 +1,11 @@
+{
+  "_provenance": "SYNTHETIC — hand-derived from basic-grammar-spelling.json by deleting the `types` fields. Some real builds omit types/explanation even when requested (see README, Notes & caveats); the UI must degrade gracefully.",
+  "input": "I seen him yesterday at the store, and he bought two loafs of bread.",
+  "result": {
+    "correctedInput": "I saw him yesterday at the store, and he bought two loaves of bread.",
+    "corrections": [
+      { "correction": "saw", "endIndex": 6, "startIndex": 2 },
+      { "correction": "loaves", "endIndex": 58, "startIndex": 53 }
+    ]
+  }
+}

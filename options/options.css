@@ -1,0 +1,351 @@
+/* options/options.css — the custom-dictionary options page.
+   The palette block is copied from sidepanel.css (the highlights.js
+   SHADOW_CSS precedent) — no shared tokens file in this change. */
+
+:root {
+  --bg: #0f1117;
+  --panel: #171a23;
+  --panel-2: #1e222e;
+  --border: #2a2f3d;
+  --text: #e6e8ee;
+  --muted: #8b91a3;
+  --accent: #6366f1;
+  --accent-2: #8b5cf6;
+  --ok: #22c55e;
+  --warn: #f59e0b;
+  --error: #ef4444;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f6f7fb;
+    --panel: #ffffff;
+    --panel-2: #f0f2f7;
+    --border: #e2e5ee;
+    --text: #1c2030;
+    --muted: #6b7280;
+  }
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+html, body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+/* ---------- Top bar ---------- */
+.topbar {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 14px 18px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+}
+.topbar h1 { margin: 0; font-size: 18px; letter-spacing: -0.01em; }
+.topbar h1 span {
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.topbar__sub { margin: 0; color: var(--muted); font-size: 13px; }
+
+/* ---------- Layout ---------- */
+main {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 22px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+}
+
+/* Section = header + its cards; the h2s carry the page hierarchy. */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.section-head h2 {
+  margin: 0;
+  font-size: 16px;
+  letter-spacing: -0.01em;
+}
+.section-head p { margin: 4px 0 0; }
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+}
+.card h3 { margin: 0 0 10px; font-size: 14px; }
+
+/* ---------- Buttons & inputs (sidepanel.css subset) ---------- */
+.btn {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  color: var(--text);
+  padding: 8px 14px;
+  border-radius: 9px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.05s ease, filter 0.15s ease;
+}
+.btn:hover { filter: brightness(1.1); }
+.btn:active { transform: translateY(1px); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btn--primary { background: var(--accent); border-color: transparent; color: #fff; }
+.btn--danger { color: var(--error); }
+.btn--danger:disabled { color: var(--muted); }
+/* Second click confirms (two-step inline confirm — no native dialog). */
+.btn--confirm { background: var(--error); border-color: transparent; color: #fff; }
+
+input[type="text"],
+input[type="password"],
+input[type="search"],
+select,
+textarea {
+  padding: 8px 11px;
+  border-radius: 9px;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  color: var(--text);
+  font: inherit;
+  resize: vertical;
+}
+input:focus, textarea:focus, select:focus { border-color: var(--accent); }
+input:focus-visible, textarea:focus-visible, select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+input::placeholder, textarea::placeholder { color: var(--muted); }
+
+.setup-links { margin: 0 0 4px; }
+.setup-links a { color: var(--accent); }
+.field {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+}
+.field span {
+  color: var(--muted);
+  font-size: 12px;
+}
+.field input,
+.field select {
+  width: 100%;
+}
+.manual-setup {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.manual-setup summary {
+  cursor: pointer;
+  color: var(--text);
+}
+.manual-setup ol {
+  margin: 8px 0 0;
+  padding-left: 20px;
+}
+.privacy-note {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.ok { color: var(--ok); }
+.warning { color: var(--warn); }
+.sync-diagnostic {
+  margin: 12px 0 0;
+  padding: 11px 12px;
+  border: 1px solid color-mix(in srgb, var(--warn) 45%, var(--border));
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--warn) 7%, transparent);
+}
+.sync-diagnostic__message { margin: 0; color: var(--warn); font-size: 12px; }
+.sync-diagnostic__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+.sync-technical { margin-top: 9px; color: var(--muted); font-size: 11px; }
+.sync-technical summary { cursor: pointer; }
+.sync-technical code {
+  display: block;
+  margin-top: 6px;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.sync-backup { margin-top: 10px; }
+
+/* Connected state: green-dot status line shown instead of the setup block. */
+.sync-connected {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 4px;
+}
+.sync-connected::before {
+  content: "";
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ok);
+}
+.sync-connected--attention::before { background: var(--warn); }
+
+.sync-recovery {
+  margin-top: 12px;
+  padding: 13px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--panel-2);
+}
+.sync-recovery__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.sync-recovery__head h3 { margin-bottom: 3px; }
+.sync-recovery__head p { margin: 0; }
+.sync-recovery__close {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  padding: 0 4px;
+  font: 20px/1 system-ui, sans-serif;
+  cursor: pointer;
+}
+.sync-recovery__choices {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+.recovery-choice {
+  appearance: none;
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--panel);
+  color: var(--text);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.recovery-choice:hover { border-color: var(--accent); }
+.recovery-choice:focus-visible,
+.sync-recovery__close:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.recovery-choice span { color: var(--muted); font-size: 12px; }
+.recovery-choice--recommended { border-color: color-mix(in srgb, var(--accent) 65%, var(--border)); }
+.recovery-choice--recommended strong::after {
+  content: "Recommended";
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+  color: color-mix(in srgb, var(--accent) 65%, white);
+  font-size: 10px;
+  font-weight: 600;
+}
+.sync-recovery__confirm {
+  margin-top: 12px;
+  padding: 11px 12px;
+  border: 1px solid color-mix(in srgb, var(--error) 45%, var(--border));
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--error) 7%, transparent);
+}
+.sync-recovery__confirm p { margin: 0; }
+.sync-recovery__confirm .muted { margin-top: 6px; }
+
+/* ---------- Add form ---------- */
+textarea { display: block; width: 100%; }
+.bulk-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+/* Keeps Disconnect away from Sync now (danger vs. routine action). */
+.bulk-row .push-right { margin-left: auto; }
+.error { margin: 8px 0 0; color: var(--error); font-size: 12px; }
+#bulkReport.error { color: var(--error); }
+
+/* ---------- The word list ---------- */
+.list-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.list-head h3 { margin: 0; }
+.list-head input { width: 200px; }
+
+.word-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.word {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px 4px 3px 10px;
+  border-radius: 999px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  font-size: 13px;
+}
+.word__text { overflow-wrap: anywhere; }
+.word__remove {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 14px;
+  line-height: 1;
+  padding: 3px 6px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.word__remove:hover { color: var(--error); background: color-mix(in srgb, var(--error) 15%, transparent); }
+
+.placeholder {
+  margin: 0;
+  padding: 18px 14px;
+  text-align: center;
+  color: var(--muted);
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+}
+
+.list-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 12px;
+}
+.muted { color: var(--muted); font-size: 12px; }

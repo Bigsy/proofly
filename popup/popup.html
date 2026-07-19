@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Proofly</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <header class="head">
+    <h1>Proof<span>ly</span></h1>
+    <!-- Harper is packaged with Proofly; Chrome AI is only used by Rewrite. -->
+    <div id="status" class="status">
+      <span class="dot"></span>
+      <span id="statusText">Checking proofreading…</span>
+    </div>
+  </header>
+
+  <button id="openPanel" class="item">Open side panel</button>
+  <button id="manageDict" class="item">Manage settings…</button>
+
+  <div class="site">
+    <div class="site__name" id="siteName"></div>
+    <button id="siteToggle" class="item item--primary" hidden></button>
+    <p id="siteNote" class="note" hidden></p>
+  </div>
+
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

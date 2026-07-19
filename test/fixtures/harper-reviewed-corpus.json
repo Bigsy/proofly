@@ -1,0 +1,23 @@
+{
+  "_provenance": {
+    "engine": "harper.js",
+    "version": "2.4.0",
+    "reviewed": "2026-07-11",
+    "policy": "Primary suggestions and intentional misses are stable release expectations; diagnostic wording and secondary ranking are not asserted."
+  },
+  "dialects": [
+    { "dialect": "american", "accepted": "favorite color center organize traveling", "rejected": "favourite colour centre organise travelling", "primary": ["favorite", "color", "center", "organize", "traveling"] },
+    { "dialect": "british", "accepted": "favourite colour centre organise travelling", "input": "favourit colur", "primary": ["favourite", "colour"] },
+    { "dialect": "australian", "accepted": "favourite colour centre organise travelling", "input": "favourit colur", "primary": ["favourite", "colour"] },
+    { "dialect": "canadian", "accepted": "favourite colour centre organize travelling", "input": "favourit colur", "primary": ["favourite", "colour"] },
+    { "dialect": "indian", "accepted": "favourite colour centre organise travelling", "input": "favourit colur", "primary": ["favourite", "colour"] }
+  ],
+  "rules": [
+    { "input": "wierd", "primary": ["weird"], "alternatives": ["weird", "wield", "wired"] },
+    { "input": "However this is fine.", "primary": [","], "types": ["punctuation"] },
+    { "input": "This is is wrong.", "primary": ["is"], "types": ["repetition"] },
+    { "input": "Could of gone.", "primary": ["Could have"], "types": ["wordchoice"] },
+    { "input": "I seen two loafs yesterday", "primary": [], "expectedMiss": true },
+    { "input": "😀 colur\nélan", "primary": ["color", "lab"], "starts": [3, 11], "note": "Pins UTF-16 offsets and Harper 2.4.0's known combining-mark tokenization: e + combining acute is skipped and lan is suggested as lab." }
+  ]
+}

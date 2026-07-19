@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Proofly fixture — plain textarea</title>
+  <style>
+    body { font: 16px/1.5 sans-serif; margin: 40px; max-width: 640px; }
+    textarea { width: 100%; height: 140px; font: inherit; padding: 10px; }
+  </style>
+</head>
+<body>
+  <h1>Plain textarea</h1>
+  <p>Focus the field, type the known-bad sentence, pause ~1 s:</p>
+  <p><code>I seen the results yesterday and we eated two loafs of bread.</code></p>
+  <textarea id="field"></textarea>
+
+  <script>
+    // Recorder for driven sessions: write-back must fire real input events.
+    window.__fixture = { inputEvents: 0 };
+    document.getElementById("field").addEventListener("input", () => {
+      window.__fixture.inputEvents++;
+    });
+  </script>
+</body>
+</html>

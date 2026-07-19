@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Proofly — Settings</title>
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <h1>Proof<span>ly</span></h1>
+      <p class="topbar__sub">Settings</p>
+    </header>
+
+    <main>
+      <section class="section">
+        <div class="section-head">
+          <h2>Sync between computers</h2>
+          <p class="muted">Optional GitHub sync for the notes library. Without this, notes stay on this device.</p>
+        </div>
+        <div class="card sync-card">
+          <!-- Setup-only UI; sync-page.js hides this block once connected. -->
+          <div id="syncSetup">
+            <p class="setup-links muted">
+              First time?
+              <a id="createRepoLink" target="_blank" rel="noreferrer">Create the repo</a>,
+              then <a id="createTokenLink" target="_blank" rel="noreferrer">create a token</a>
+              and paste it below.
+            </p>
+            <label class="field">
+              <span>Fine-grained GitHub token</span>
+              <input id="syncToken" type="password" autocomplete="off" placeholder="Paste token…" />
+            </label>
+            <label id="syncRepoWrap" class="field" hidden>
+              <span>Repository</span>
+              <select id="syncRepo"></select>
+            </label>
+            <p class="privacy-note">
+              The token is stored in Chrome sync storage so your signed-in Chromes can reuse it.
+              Proofly sends it only to GitHub for the repository you choose.
+            </p>
+            <details class="manual-setup">
+              <summary>Manual setup</summary>
+              <ol>
+                <li>Create a private GitHub repository, for example <code>proofly-notes</code>.</li>
+                <li>Create a fine-grained personal access token for only that repository.</li>
+                <li>Give it <strong>Contents: read/write</strong>, generate it, then paste it above.</li>
+              </ol>
+            </details>
+          </div>
+          <p id="syncConnected" class="sync-connected" hidden></p>
+          <div class="bulk-row">
+            <button id="syncNowBtn" class="btn btn--primary" type="button" disabled>Sync now</button>
+            <span id="syncStatus" class="muted" role="status"></span>
+            <button id="disconnectSyncBtn" class="btn btn--danger push-right" type="button" disabled>Disconnect</button>
+          </div>
+          <div id="syncDiagnostic" class="sync-diagnostic" role="alert" hidden>
+            <p id="syncDiagnosticMessage" class="sync-diagnostic__message"></p>
+            <div class="sync-diagnostic__actions">
+              <button id="resolveSyncBtn" class="btn" type="button" hidden>Resolve conflict…</button>
+            </div>
+            <details id="syncTechnicalDetails" class="sync-technical">
+              <summary>Technical details</summary>
+              <code id="syncTechnicalText"></code>
+            </details>
+          </div>
+          <button id="downloadSyncBackupBtn" class="btn sync-backup" type="button" hidden>Download last recovery backup</button>
+
+          <section id="syncRecovery" class="sync-recovery" aria-labelledby="syncRecoveryTitle" hidden>
+            <div class="sync-recovery__head">
+              <div>
+                <h3 id="syncRecoveryTitle">Resolve sync conflict</h3>
+                <p id="syncRecoverySummary" class="muted"></p>
+              </div>
+              <button id="closeSyncRecoveryBtn" class="sync-recovery__close" type="button" aria-label="Close recovery">×</button>
+            </div>
+
+            <div id="syncRecoveryChoices" class="sync-recovery__choices">
+              <button id="repairSyncBtn" class="recovery-choice recovery-choice--recommended" type="button">
+                <strong>Repair and keep both</strong>
+                <span>Safest — merge both libraries and preserve conflicting versions as separate notes.</span>
+              </button>
+              <button id="useGitHubSyncBtn" class="recovery-choice" type="button">
+                <strong>Use GitHub notes on this device</strong>
+                <span>Replace this device's library with the current GitHub library.</span>
+              </button>
+              <button id="useLocalSyncBtn" class="recovery-choice" type="button">
+                <strong>Replace GitHub with this device</strong>
+                <span>Make this device's library authoritative for every synced computer.</span>
+              </button>
+            </div>
+
+            <div id="syncRecoveryConfirm" class="sync-recovery__confirm" hidden>
+              <p id="syncRecoveryWarning"></p>
+              <p class="muted">A downloadable recovery backup is saved on this device first.</p>
+              <div class="bulk-row">
+                <button id="cancelSyncRecoveryBtn" class="btn" type="button">Cancel</button>
+                <button id="confirmSyncRecoveryBtn" class="btn btn--confirm" type="button">Confirm replacement</button>
+              </div>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-head">
+          <h2>Dictionary</h2>
+          <p class="muted">
+            Words Proofly should stop flagging — names, jargon, product terms.
+            Synced across your Chromes. A lowercase entry matches any
+            capitalization; an entry with capitals must match exactly.
+          </p>
+        </div>
+
+        <div class="card">
+          <h3>Add words</h3>
+          <textarea id="bulkInput" rows="4"
+            placeholder="One word per line (spaces work too, e.g. Acme)"></textarea>
+          <div class="bulk-row">
+            <button id="bulkBtn" class="btn btn--primary">Add all</button>
+            <span id="bulkReport" class="muted" role="status"></span>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="list-head">
+            <h3>Words</h3>
+            <input id="dictSearch" type="search" placeholder="Search words…" />
+          </div>
+          <p id="dictEmpty" class="placeholder" hidden></p>
+          <ul id="wordList" class="word-list"></ul>
+          <div class="list-foot">
+            <span id="quotaMeter" class="muted"></span>
+            <!-- Two-step inline confirm (the library's delete pattern). -->
+            <button id="clearBtn" class="btn btn--danger">Clear all</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="options.js"></script>
+  </body>
+</html>

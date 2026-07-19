@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Proofly fixture - CodeMirror 5 pinned</title>
+  <link rel="stylesheet" href="/node_modules/codemirror/lib/codemirror.css" />
+  <style>
+    body { font: 16px/1.5 sans-serif; margin: 40px; }
+    .CodeMirror {
+      border: 1px solid #999;
+      min-height: 120px;
+      height: auto;
+    }
+    .CodeMirror-scroll { min-height: 120px; }
+  </style>
+  <script src="/node_modules/codemirror/lib/codemirror.js"></script>
+  <script src="/node_modules/codemirror/mode/markdown/markdown.js"></script>
+</head>
+<body>
+  <textarea id="source">I seen it.</textarea>
+  <script type="module">
+    import { createBridgeResponder } from "/page/content/bridge/main.js";
+
+    const source = document.querySelector("#source");
+    const editor = CodeMirror.fromTextArea(source, {
+      lineNumbers: false,
+      mode: "markdown",
+      lineWrapping: true,
+      undoDepth: 50,
+    });
+    const shell = editor.getWrapperElement();
+    const root = shell.querySelector(".CodeMirror-code");
+    root.id = "field";
+    root.dataset.language = "markdown";
+    shell.dataset.language = "markdown";
+
+    function stateText() {
+      return editor.getValue();
+    }
+
+    function domSelectionOffset() {
+      const selection = getSelection();
+      if (!selection?.rangeCount || !root.contains(selection.anchorNode)) return null;
+      const before = document.createRange();
+      before.selectNodeContents(root);
+      before.setEnd(selection.anchorNode, selection.anchorOffset);
+      return { offset: before.toString().length, collapsed: selection.isCollapsed };
+    }
+
+    function posFromIndex(index) {
+      return editor.posFromIndex(index);
+    }
+
+    window.__fixture = {
+      editor,
+      root,
+      ready: true,
+      inputEvents: 0,
+      changes: [],
+      get domText() { return root.textContent; },
+      get stateText() { return stateText(); },
+      get selection() {
+        const cursor = editor.getCursor();
+        return { offset: editor.indexFromPos(cursor), collapsed: editor.somethingSelected() === false };
+      },
+      get domSelection() { return domSelectionOffset(); },
+      undo() {
+        editor.undo();
+        return true;
+      },
+      redo() {
+        editor.redo();
+        return true;
+      },
+      textNodeContaining(value) {
+        const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+        let node;
+        while ((node = walker.nextNode())) {
+          if (node.nodeValue.includes(value)) return node;
+        }
+        return null;
+      },
+    };
+
+    root.addEventListener("input", () => { window.__fixture.inputEvents += 1; });
+    editor.on("change", () => {
+      window.__fixture.changes.push(stateText());
+    });
+
+    window.__fixture.bridge = createBridgeResponder({
+      handlers: {
+        "codemirror.replace": ({ start, end, replacement, expectedText, expectedResult }) => {
+          const before = stateText();
+          if (before.slice(start, end) !== expectedText) return { applied: false, text: before };
+          editor.replaceRange(replacement, posFromIndex(start), posFromIndex(end), "+proofly");
+          editor.setCursor(posFromIndex(start + replacement.length));
+          const after = stateText();
+          return {
+            applied: after === expectedResult,
+            text: after,
+            selection: editor.indexFromPos(editor.getCursor()),
+          };
+        },
+      },
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,26 @@
+# macOS
+.DS_Store
+
+# Editor/OS cruft
+*.swp
+.idea/
+.vscode/
+
+# Agent working files — local only, never committed
+PLAN*.md
+AGENTS.md
+CLAUDE.md
+.claude/
+.mcp.json
+
+# Store-asset build intermediates (final PNGs in store/ are committed)
+store/work/
+dist/
+
+# Tests
+node_modules/
+test-results/
+
+temp/
+.codex
+docs

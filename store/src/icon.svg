@@ -1,0 +1,37 @@
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6d70f9"/>
+      <stop offset="0.55" stop-color="#6366f1"/>
+      <stop offset="1" stop-color="#7c4df3"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.3" cy="0.12" r="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.28"/>
+      <stop offset="0.45" stop-color="#ffffff" stop-opacity="0.06"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="vign" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0.55" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#1e1b4b" stop-opacity="0.25"/>
+    </linearGradient>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#312e81" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <rect width="128" height="128" rx="28" fill="url(#bg)"/>
+  <rect width="128" height="128" rx="28" fill="url(#glow)"/>
+  <rect width="128" height="128" rx="28" fill="url(#vign)"/>
+
+  <!-- P glyph -->
+  <g filter="url(#soft)">
+    <path d="M48 80 L48 27 M48 27 H63 A17.5 17.5 0 0 1 63 62 H48"
+          fill="none" stroke="#ffffff" stroke-width="13"
+          stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <!-- proofreading squiggle -->
+  <path d="M40 101 Q48 91 56 101 T72 101 T88 101"
+        fill="none" stroke="#fb7185" stroke-width="8"
+        stroke-linecap="round" filter="url(#soft)"/>
+</svg>

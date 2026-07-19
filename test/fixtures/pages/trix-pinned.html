@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Proofly fixture - Trix pinned</title>
+  <link rel="stylesheet" href="/node_modules/trix/dist/trix.css" />
+  <style>
+    body { font: 16px/1.5 sans-serif; margin: 40px; }
+    trix-toolbar { display: none; }
+    trix-editor {
+      border: 1px solid #999;
+      min-height: 120px;
+      padding: 10px;
+    }
+  </style>
+  <script src="/node_modules/trix/dist/trix.umd.min.js"></script>
+</head>
+<body>
+  <input id="trix-input" type="hidden" value="<div>I seen it.</div>" />
+  <trix-editor id="field" input="trix-input"></trix-editor>
+  <script>
+    const root = document.querySelector("#field");
+
+    function trixText() {
+      return root.editor?.getDocument().toString().replace(/\n$/, "") ?? "";
+    }
+
+    function domSelectionOffset() {
+      const selection = getSelection();
+      if (!selection?.rangeCount || !root.contains(selection.anchorNode)) return null;
+      const before = document.createRange();
+      before.selectNodeContents(root);
+      before.setEnd(selection.anchorNode, selection.anchorOffset);
+      return { offset: before.toString().length, collapsed: selection.isCollapsed };
+    }
+
+    window.__fixture = {
+      root,
+      ready: false,
+      inputEvents: 0,
+      changes: [],
+      get domText() { return root.textContent; },
+      get stateText() { return trixText(); },
+      get value() { return document.querySelector("#trix-input").value; },
+      get selection() { return domSelectionOffset(); },
+      undo() {
+        root.editor.undo();
+        return true;
+      },
+      redo() {
+        root.editor.redo();
+        return true;
+      },
+      textNodeContaining(value) {
+        const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+        let node;
+        while ((node = walker.nextNode())) {
+          if (node.nodeValue.includes(value)) return node;
+        }
+        return null;
+      },
+    };
+
+    root.addEventListener("input", () => { window.__fixture.inputEvents += 1; });
+    root.addEventListener("trix-change", () => {
+      window.__fixture.changes.push(trixText());
+    });
+    root.addEventListener("trix-initialize", () => {
+      window.__fixture.ready = true;
+    });
+    customElements.whenDefined("trix-editor").then(() => {
+      requestAnimationFrame(() => {
+        if (root.editor) window.__fixture.ready = true;
+      });
+    });
+  </script>
+  <script type="module">
+    import { createBridgeResponder } from "/page/content/bridge/main.js";
+
+    function logicalText(editor) {
+      return editor?.getDocument().toString().replace(/\n$/, "") ?? "";
+    }
+
+    window.__fixture.bridge = createBridgeResponder({
+      handlers: {
+        "trix.replace": ({ rootId, start, end, replacement, expectedText, expectedResult }) => {
+          const editorRoot = document.getElementById(rootId);
+          const editor = editorRoot?.editor;
+          if (!editorRoot || !editor) return { applied: false };
+
+          const before = logicalText(editor);
+          if (before.slice(start, end) !== expectedText) return { applied: false, text: before };
+
+          editor.recordUndoEntry("Proofly");
+          editor.setSelectedRange([start, end]);
+          editor.insertString(replacement);
+
+          const after = logicalText(editor);
+          return {
+            applied: after === expectedResult,
+            text: after,
+            selectedRange: editor.getSelectedRange(),
+            canUndo: editor.canUndo(),
+          };
+        },
+      },
+    });
+  </script>
+</body>
+</html>

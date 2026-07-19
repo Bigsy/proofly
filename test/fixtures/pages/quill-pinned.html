@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Proofly fixture - Quill pinned</title>
+  <link rel="stylesheet" href="/node_modules/quill/dist/quill.snow.css" />
+  <style>
+    body { font: 16px/1.5 sans-serif; margin: 40px; }
+    #mount { max-width: 680px; }
+    .ql-editor { min-height: 120px; }
+  </style>
+</head>
+<body>
+  <div id="mount"></div>
+  <script src="/node_modules/quill/dist/quill.js"></script>
+  <script type="module">
+    window.__fixture = {
+      quill: null,
+      root: null,
+      inputEvents: 0,
+      textChanges: [],
+      selections: [],
+      ready: false,
+      get text() { return window.__fixture.quill?.getText() ?? ""; },
+      get html() { return window.__fixture.root?.innerHTML ?? ""; },
+      get delta() { return window.__fixture.quill?.getContents().ops ?? []; },
+      get selection() {
+        const range = window.__fixture.quill?.getSelection();
+        return range ? { index: range.index, length: range.length } : null;
+      },
+      undo() {
+        window.__fixture.quill.history.undo();
+        return true;
+      },
+      redo() {
+        window.__fixture.quill.history.redo();
+        return true;
+      },
+      textNodeContaining(value) {
+        const walker = document.createTreeWalker(window.__fixture.root, NodeFilter.SHOW_TEXT);
+        let node;
+        while ((node = walker.nextNode())) {
+          if (node.nodeValue.includes(value)) return node;
+        }
+        return null;
+      },
+    };
+
+    try {
+      const Quill = window.Quill;
+      const quill = new Quill("#mount", {
+        modules: {
+          toolbar: false,
+          history: { delay: 100, maxStack: 100, userOnly: false },
+        },
+        theme: "snow",
+      });
+      quill.setContents([{ insert: "I seen it.\n" }], "api");
+
+      const root = quill.root;
+      root.id = "field";
+      root.addEventListener("input", () => { window.__fixture.inputEvents += 1; });
+      quill.on("text-change", (_delta, _old, source) => {
+        window.__fixture.textChanges.push({ text: quill.getText(), source });
+      });
+      quill.on("selection-change", (range) => {
+        window.__fixture.selections.push(range ? { index: range.index, length: range.length } : null);
+      });
+      window.__fixture.quill = quill;
+      window.__fixture.root = root;
+      window.__fixture.ready = true;
+    } catch (error) {
+      window.__fixture.error = error.message;
+      throw error;
+    }
+  </script>
+</body>
+</html>

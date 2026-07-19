@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Proofly fixture — contenteditable (Phase 2)</title>
+  <style>
+    body { font: 16px/1.5 sans-serif; margin: 40px; max-width: 640px; }
+    #field { border: 1px solid #999; border-radius: 6px; padding: 10px; min-height: 120px; }
+  </style>
+</head>
+<body>
+  <h1>Simple contenteditable</h1>
+  <p>Phase 2: CSS Highlight API path — note it is force-disabled under
+     <code>navigator.webdriver</code>, so automated runs see the overlay
+     fallback; eyeball the Highlight path in a normal Chrome.</p>
+  <div id="field" contenteditable="true"></div>
+
+  <script>
+    window.__fixture = { inputEvents: 0 };
+    document.getElementById("field").addEventListener("input", () => {
+      window.__fixture.inputEvents++;
+    });
+  </script>
+</body>
+</html>
