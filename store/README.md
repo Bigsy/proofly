@@ -10,6 +10,7 @@ Final uploads (exact store dimensions, 24-bit PNG, no alpha):
 | `screenshot-1-editor-1280x800.png` | Screenshot 1 — editor + live underlines | 1280×800 |
 | `screenshot-2-corrections-1280x800.png` | Screenshot 2 — corrections list | 1280×800 |
 | `screenshot-3-library-1280x800.png` | Screenshot 3 — notes library | 1280×800 |
+| `screenshot-4-website-1280x800.png` | Screenshot 4 — in-page spell check on a normal website | 1280×800 |
 
 The extension icons in `../icons/` (16/48/128) are rendered from the same
 source.
@@ -43,6 +44,8 @@ files.
 
 - `src/icon.svg` — master icon (used for 48 and 128).
 - `src/icon-small.svg` — simplified variant with heavier strokes for 16/32 px.
+- `src/demo-site.html` — the generic recipe-blog page (comment box) used for
+  the screenshot-4 in-page capture.
 - `src/build.py` — composes the tiles + screenshots: embeds the real UI
   captures from `work/ui-*.png` (base64) into SVG layouts, renders with
   `rsvg-convert`, flattens to 24-bit PNG with ImageMagick.
@@ -66,3 +69,16 @@ the `proofly-chrome` MCP Chrome at a 420×760 viewport with
 extension, open `chrome-extension://<id>/sidepanel.html` in a tab, seed
 `chrome.storage.local` with demo notes, type demo text with deliberate errors
 into the editor, wait for "corrections suggested", screenshot.
+
+`work/ui-website.png` (screenshot 4) is a real capture of the in-page feature
+running on `src/demo-site.html`. Serve the page over HTTP
+(`python3 -m http.server` — `file:` origins can't be enabled), install the
+extension, enable Proofly for `http://localhost/*`, then at a 640×900 viewport
+with `deviceScaleFactor: 2` (PNG is 1280×1800): type the typo'd comment into
+the textarea, wait for the squiggles, click a squiggled word so the fix popup
+is open, screenshot. Two gotchas: the page CSS sets
+`::spelling-error { text-decoration-line: none; }` so Chrome's native
+spellcheck dots don't double-underline Proofly's squiggles (don't use
+`spellcheck="false"` — Proofly deliberately skips such fields), and the fix
+popup opens at the click coordinates, so click a word whose popup won't cover
+the other squiggles or the page's submit button.

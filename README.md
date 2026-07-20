@@ -8,19 +8,25 @@
 powered by the packaged **Harper 2.4.0** English proofing engine. It puts an
 editor pane in the browser **side panel** — you type, and grammar, spelling,
 punctuation, capitalization, usage and style feedback comes back in real time
-without downloading an AI model. Proofly distinguishes automatic **fixes** from
-informational **writing suggestions** that Harper cannot apply. Everything runs
-**client-side**; your text never leaves the device unless you explicitly turn
-on optional sync to your own GitHub repo.
+without downloading an AI model. It also **spell checks ordinary websites**:
+turn Proofly on for a site and the same engine checks the fields you type in
+right on the page — wavy underlines under the typos, one-click fixes. Proofly
+distinguishes automatic **fixes** from informational **writing suggestions**
+that Harper cannot apply. Everything runs **client-side**; your text never
+leaves the device unless you explicitly turn on optional sync to your own
+GitHub repo.
 
 Proofreading—including spelling—is always handled by Harper. Gemini Nano is
 used only by the optional Rewrite feature when Chrome's built-in Rewriter API
 is enabled.
 
 <p align="center">
-  <img src="store/screenshot-1-editor-1280x800.png" width="32%" alt="Editor with live wavy underlines as you type">
-  <img src="store/screenshot-2-corrections-1280x800.png" width="32%" alt="Corrections list with one-click Apply buttons">
-  <img src="store/screenshot-3-library-1280x800.png" width="32%" alt="Built-in notes library with search and export">
+  <img src="store/screenshot-1-editor-1280x800.png" width="49%" alt="Editor with live wavy underlines as you type">
+  <img src="store/screenshot-4-website-1280x800.png" width="49%" alt="Spell checking a comment box on an ordinary website — wavy underlines and a one-click fix popup">
+</p>
+<p align="center">
+  <img src="store/screenshot-2-corrections-1280x800.png" width="49%" alt="Corrections list with one-click Apply buttons">
+  <img src="store/screenshot-3-library-1280x800.png" width="49%" alt="Built-in notes library with search and export">
 </p>
 
 ## Features

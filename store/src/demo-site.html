@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>One-Pot Lemon Orzo — The Weeknight Kitchen</title>
+<style>
+  :root {
+    --ink: #24292f;
+    --muted: #6b7280;
+    --line: #e7e2da;
+    --accent: #b4532a;
+    --bg: #faf8f5;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  ::spelling-error { text-decoration-line: none; }
+  ::grammar-error { text-decoration-line: none; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 584px; margin: 0 auto; padding: 0 24px; }
+  header.site {
+    border-bottom: 1px solid var(--line);
+    background: #fffdfa;
+  }
+  header.site .wrap {
+    display: flex; align-items: baseline; justify-content: space-between;
+    padding-top: 14px; padding-bottom: 14px;
+  }
+  .brand {
+    font-weight: 700; font-size: 17px; letter-spacing: -0.01em;
+    color: var(--accent);
+  }
+  nav { display: flex; gap: 18px; font-size: 13.5px; color: var(--muted); }
+  article { padding-top: 20px; }
+  .kicker {
+    font-size: 12px; font-weight: 600; letter-spacing: 0.09em;
+    text-transform: uppercase; color: var(--accent);
+  }
+  h1 {
+    font-size: 27px; line-height: 1.25; letter-spacing: -0.02em;
+    margin: 6px 0 8px;
+  }
+  .meta { font-size: 13.5px; color: var(--muted); }
+  .meta span + span::before { content: "·"; margin: 0 7px; color: #cbc5bb; }
+  .hero {
+    margin: 14px 0 12px; height: 100px; border-radius: 12px;
+    background:
+      radial-gradient(120px 90px at 78% 20%, #f6d78b 0%, transparent 70%),
+      radial-gradient(160px 120px at 15% 80%, #dce8c9 0%, transparent 70%),
+      linear-gradient(135deg, #f3e4c8 0%, #e9d3ae 45%, #dfc79c 100%);
+    position: relative; overflow: hidden;
+  }
+  .hero::after {
+    content: ""; position: absolute; left: 50%; top: 50%;
+    width: 96px; height: 96px; transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #fdf4dd 0 28%, #f0c96a 30% 62%, #b4532a 64% 100%);
+    box-shadow: 0 10px 24px rgba(120, 70, 20, 0.25);
+  }
+  article > p { font-size: 15.5px; line-height: 1.6; color: #3d4451; }
+  .comments { margin-top: 18px; border-top: 1px solid var(--line); padding-top: 16px; padding-bottom: 60px; }
+  .comments h2 { font-size: 18px; letter-spacing: -0.01em; margin-bottom: 14px; }
+  .comment { display: flex; gap: 12px; padding: 4px 0 16px; }
+  .avatar {
+    width: 34px; height: 34px; border-radius: 50%; flex: none;
+    background: linear-gradient(135deg, #9db8a1, #5f8a6c);
+    color: #fff; font-size: 14px; font-weight: 600;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .comment .who { font-size: 13.5px; margin-bottom: 3px; }
+  .comment .who b { font-weight: 600; }
+  .comment .who time { color: var(--muted); margin-left: 7px; }
+  .comment p { font-size: 14.5px; line-height: 1.5; color: #3d4451; }
+  form { margin-top: 6px; }
+  form label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px; }
+  textarea {
+    width: 100%; min-height: 118px; resize: vertical;
+    font: 16px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: var(--ink);
+    padding: 12px 14px; border: 1.5px solid #ddd6cb; border-radius: 10px;
+    background: #fff; outline: none;
+  }
+  textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(180, 83, 42, 0.12); }
+  .row { display: flex; justify-content: flex-end; margin-top: 10px; }
+  button {
+    font: 600 14px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: #fff; background: var(--accent); border: 0; border-radius: 8px;
+    padding: 10px 18px;
+  }
+</style>
+</head>
+<body>
+  <header class="site">
+    <div class="wrap">
+      <span class="brand">The Weeknight Kitchen</span>
+      <nav><span>Recipes</span><span>Pantry</span><span>About</span></nav>
+    </div>
+  </header>
+  <main class="wrap">
+    <article>
+      <div class="kicker">Dinner in a hurry</div>
+      <h1>One-Pot Lemon Orzo with Spring Vegetables</h1>
+      <div class="meta"><span>April 14</span><span>25 minutes</span><span>Serves 4</span></div>
+      <div class="hero" role="img" aria-label="A bowl of lemon orzo"></div>
+      <p>Bright, creamy without any cream, and done before the table is even
+      set — the orzo simmers straight in the broth, so the starch does the
+      saucing for you.</p>
+    </article>
+    <section class="comments">
+      <h2>Comments (3)</h2>
+      <div class="comment">
+        <div class="avatar">J</div>
+        <div>
+          <div class="who"><b>Jamie</b><time>2 days ago</time></div>
+          <p>Made this tonight and the whole family went back for seconds.
+          The lemon really carries it.</p>
+        </div>
+      </div>
+      <form>
+        <label for="comment">Leave a comment</label>
+        <textarea id="comment" name="comment" placeholder="Share your thoughts…"></textarea>
+        <div class="row"><button type="button">Post comment</button></div>
+      </form>
+    </section>
+  </main>
+</body>
+</html>

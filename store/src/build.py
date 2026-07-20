@@ -96,6 +96,38 @@ def panel_card(img64, x, y, scale, clip_h, cid, img_w=840, img_h=1520, r=16):
           stroke="{BORDER}" stroke-width="1.5"/>"""
 
 
+def browser_card(img64, x, y, scale, clip_h, cid, img_w=1280, img_h=1800, r=16, bar_h=46):
+    """A website capture framed as a light browser window: toolbar with
+    traffic lights + padlock URL pill, page below, clipped to clip_h."""
+    dw = img_w * scale
+    dh = img_h * scale
+    pill_x, pill_y, pill_h = x + 88, y + 9, bar_h - 18
+    pill_w = dw - 88 - 14
+    lock_x, lock_y = pill_x + 14, pill_y + pill_h / 2
+    return f"""
+    <clipPath id="{cid}"><rect x="{x}" y="{y}" width="{dw:.0f}" height="{clip_h}" rx="{r}"/></clipPath>
+    <rect x="{x}" y="{y}" width="{dw:.0f}" height="{clip_h}" rx="{r}" fill="#efece7" filter="url(#cardShadow)"/>
+    <g clip-path="url(#{cid})">
+      <image x="{x}" y="{y + bar_h}" width="{dw:.0f}" height="{dh:.0f}"
+             xlink:href="data:image/png;base64,{img64}"
+             xmlns:xlink="http://www.w3.org/1999/xlink"/>
+      <rect x="{x}" y="{y}" width="{dw:.0f}" height="{bar_h}" fill="#efece7"/>
+      <line x1="{x}" y1="{y + bar_h}" x2="{x + dw:.0f}" y2="{y + bar_h}" stroke="#ddd8cf" stroke-width="1"/>
+      <circle cx="{x + 24}" cy="{y + bar_h / 2}" r="6" fill="#ff5f57"/>
+      <circle cx="{x + 45}" cy="{y + bar_h / 2}" r="6" fill="#febc2e"/>
+      <circle cx="{x + 66}" cy="{y + bar_h / 2}" r="6" fill="#28c840"/>
+      <rect x="{pill_x}" y="{pill_y}" width="{pill_w:.0f}" height="{pill_h}" rx="{pill_h / 2}"
+            fill="#ffffff" stroke="#e3ded6" stroke-width="1"/>
+      <rect x="{lock_x - 4}" y="{lock_y - 1}" width="8" height="6" rx="1.5" fill="#8a8f9e"/>
+      <path d="M{lock_x - 2.5} {lock_y - 1} v-2 a2.5 2.5 0 0 1 5 0 v2" fill="none"
+            stroke="#8a8f9e" stroke-width="1.4"/>
+      <text x="{lock_x + 10}" y="{lock_y + 4.5}" font-family="{FONT}" font-size="13.5"
+            fill="#6b7280">weeknight-kitchen.example</text>
+    </g>
+    <rect x="{x}" y="{y}" width="{dw:.0f}" height="{clip_h}" rx="{r}" fill="none"
+          stroke="{BORDER}" stroke-width="1.5"/>"""
+
+
 def pills(x, y, items):
     out, px = [], x
     for label in items:
@@ -123,6 +155,7 @@ icon64 = b64(WORK / "icon256.png")
 ed64 = b64(WORK / "ui-editor.png")
 co64 = b64(WORK / "ui-corrections.png")
 li64 = b64(WORK / "ui-library.png")
+wb64 = b64(WORK / "ui-website.png")
 
 
 # ---------------- small promo tile 440x280 ----------------
@@ -159,7 +192,7 @@ render("marquee-1400x560", 1400, 560, body)
 
 
 # ---------------- screenshots 1280x800 ----------------
-def comp(name, img, headline, sub_lines, accent_under=None):
+def comp(name, img, headline, sub_lines, accent_under=None, card=None):
     body = defs() + background(1280, 800, [(220, 90, 520, "glowA"), (1130, 740, 480, "glowB")])
     body += brand_row(icon64, 84, 76)
     y = 300
@@ -175,7 +208,7 @@ def comp(name, img, headline, sub_lines, accent_under=None):
         body += (f'<text x="84" y="{y}" font-family="{FONT}" font-size="21.5" '
                  f'fill="{MUTED}">{line}</text>')
         y += 33
-    body += panel_card(img, 690, 70, 0.62, 800 - 70, f"sc-{name}")
+    body += card if card is not None else panel_card(img, 690, 70, 0.62, 800 - 70, f"sc-{name}")
     render(name, 1280, 800, body)
 
 
@@ -197,5 +230,12 @@ comp("screenshot-3-library-1280x800", li64,
      ["A built-in notes library with search and export.",
       "Notes auto-save to local storage — on your",
       "machine, nowhere else."])
+
+comp("screenshot-4-website-1280x800", wb64,
+     ["Fix typos on any", "website you choose."],
+     ["Turn Proofly on for a site and it checks the",
+      "fields you type in — wavy underlines and",
+      "one-click fixes, all still 100% on-device."],
+     card=browser_card(wb64, 650, 70, 0.4375, 800 - 70, "sc-web"))
 
 print("done")
