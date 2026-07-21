@@ -66,8 +66,9 @@ servers.
 
 Notes sync is optional and off by default. If the user enables it, Proofly sends
 note JSON and the user-provided fine-grained GitHub token to GitHub only to read
-and write the private repository selected by the user. Proofly has no sync
-server.
+and write the repository selected by the user. Repository visibility is
+controlled by the user, and a private repository is recommended. Proofly has no
+sync server.
 
 ## Suggested Privacy Form Answers
 

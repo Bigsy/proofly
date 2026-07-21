@@ -1,6 +1,6 @@
 # Proofly Privacy Policy
 
-Last updated: July 11, 2026
+Last updated: July 21, 2026
 
 Proofly is a Chrome extension for private, on-device proofreading. The extension
 does not operate a server, does not sell user data, and does not use user data
@@ -30,9 +30,10 @@ Proofly stores the following data in Chrome extension storage:
 ## Optional GitHub Notes Sync
 
 Notes sync is off by default. If you enable it, Proofly sends your note JSON to
-the private GitHub repository that you choose. Proofly also sends your
-user-provided GitHub personal access token to GitHub's API so it can read and
-write that repository.
+the GitHub repository you choose. The repository's visibility determines who
+can access those notes, so using a private repository is recommended. Proofly
+sends your user-provided GitHub personal access token to GitHub's API solely to
+read and write that repository.
 
 The token is stored in Chrome sync storage so your signed-in Chrome profiles can
 reuse the same sync settings. Proofly restricts its local and sync storage areas
@@ -44,7 +45,7 @@ may still be able to read extension storage. Use a fine-grained GitHub token
 scoped only to the notes repository with Contents read/write access.
 
 Disconnecting GitHub sync removes the saved token from Proofly and keeps your
-local notes.
+local notes. It does not delete notes already stored in the GitHub repository.
 
 ## Data Sharing
 
@@ -77,11 +78,10 @@ features:
 
 Proofly's use of information received from Chrome APIs adheres to the Chrome Web
 Store User Data Policy, including the Limited Use requirements. Data accessed by
-Proofly is used only to provide and improve Proofly's proofreading, notes,
-dictionary, settings, site opt-in, and optional sync features.
+Proofly is used only to provide Proofly's proofreading, notes, dictionary,
+settings, site opt-in, and optional sync features.
 
 ## Changes
 
-This policy may be updated as Proofly changes. The current policy should be
-linked from the Chrome Web Store listing and kept consistent with the extension's
-actual behavior.
+Updates to this policy will be published on this page, and the date above will
+be updated.
