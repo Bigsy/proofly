@@ -1,5 +1,5 @@
 # Proofly
-
+Get from store: https://chromewebstore.google.com/detail/proofly/amocofppfkjehinocjhanjcpeogaepcf?authuser=0&hl=en-GB
 <p align="center">
   <img src="store/marquee-1400x560.png" alt="Proofly — private, on-device proofreading" width="100%">
 </p>
