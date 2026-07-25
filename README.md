@@ -200,6 +200,21 @@ options page shows a usage meter, and a write past the quota fails loudly
 two devices adding words in the same sync window can lose one (rare;
 self-healing — just add it again).
 
+## Harper Weirpacks
+
+Proofly Settings can import Harper `.weirpack` archives containing custom
+dictionaries and rules. Proofly asks the packaged Harper runtime to run the
+pack's embedded tests before saving it, and a rejected pack is never enabled.
+Imported packs are applied to both the notes editor and opted-in website
+fields.
+
+Each pack is stored as its own `chrome.storage.sync` item, with a small synced
+index, so packs follow the user's signed-in Chrome profiles without sharing
+them with Proofly or a Proofly server. The current per-pack file limit is
+5,600 bytes, leaving room for base64 encoding under Chrome's 8 KB per-item
+quota. Pack data stays behind the trusted-extension storage boundary and is
+not exposed to website content scripts.
+
 ## Sync between computers (optional)
 
 Notes sync is off by default. When enabled, Proofly stores each note as JSON in
@@ -230,9 +245,10 @@ plaintext** in Chrome's extension sync storage (that's how it follows you
 across devices — Proofly has no server to hold it for you). Proofly restricts
 both extension storage areas to trusted extension pages and its service worker;
 the website content script receives only dictionary words, proofing settings,
-and adapter flags through a narrow message boundary. This does not encrypt the
-profile: anyone with access to your Chrome profile could still read the token,
-so scope it accordingly and use a
+and adapter flags through a narrow message boundary; notes, credentials, and
+Weirpacks stay in trusted extension contexts. This does not encrypt the profile:
+anyone with access to your Chrome profile could still read the token, so scope
+it accordingly and use a
 fine-grained token that can access only the notes repo and only
 **Contents: read/write**, and set an expiry if that trade-off suits you better.
 Disconnect clears the token from Proofly and keeps local notes.

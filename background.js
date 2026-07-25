@@ -23,6 +23,9 @@ import {
   DEFAULT_EDITOR_ADAPTER_FLAGS, EDITOR_ADAPTER_FLAGS_KEY, normalizeEditorAdapterFlags,
 } from "./page/content/adapter-flags.js";
 import {
+  isWeirpackStorageChange, loadWeirpacks,
+} from "./lib/weirpack-store.js";
+import {
   PAGE_ADAPTER_FLAGS_CHANGED, PAGE_DICTIONARY_CHANGED, PAGE_DICTIONARY_UPDATE,
   PAGE_PROOFING_SETTINGS_CHANGED, PAGE_STORAGE_GET,
 } from "./lib/storage-broker.js";
@@ -140,13 +143,17 @@ export async function handlePageStorageRequest(message) {
 
 async function storedHarperConfiguration() {
   await storageAccessReady;
-  const data = await chrome.storage.sync.get([PROOFING_SETTINGS_KEY, DICTIONARY_KEY]);
+  const [data, storedWeirpacks] = await Promise.all([
+    chrome.storage.sync.get([PROOFING_SETTINGS_KEY, DICTIONARY_KEY]),
+    loadWeirpacks(),
+  ]);
   const words = asWordList(data?.[DICTIONARY_KEY]);
   const settings = parseProofingSettings(data?.[PROOFING_SETTINGS_KEY]);
   const config = {
     dialect: resolveDialect(settings, chrome.i18n.getUILanguage()),
     words,
     ruleOverrides: { ...HARPER_RULE_OVERRIDES },
+    weirpacks: storedWeirpacks.map(({ id, bytes }) => ({ id, bytes: Array.from(bytes) })),
   };
   return { ...config, configurationRevision: configurationRevision(config) };
 }
@@ -478,7 +485,7 @@ chrome.storage.onChanged.addListener(async (changes, area) => {
       proofingSettings: parseProofingSettings(changes[PROOFING_SETTINGS_KEY].newValue),
     });
   }
-  if ((changes[DICTIONARY_KEY] || changes[PROOFING_SETTINGS_KEY])
+  if ((changes[DICTIONARY_KEY] || changes[PROOFING_SETTINGS_KEY] || isWeirpackStorageChange(changes))
     && await hasHarperOffscreen()) {
     await configureHarperFromStorage().catch((error) => {
       console.warn("Harper storage reconfiguration failed:", error);

@@ -26,5 +26,9 @@ describe("Proofly Harper rule configuration", () => {
       ...base,
       ruleOverrides: { LongSentences: true, FutureRule: true },
     })).not.toBe(revision);
+    expect(configurationRevision({
+      ...base,
+      weirpacks: [{ id: "doccla", bytes: [1, 2, 3] }],
+    })).not.toBe(revision);
   });
 });

@@ -8,8 +8,8 @@ This file is reviewer/dashboard copy for Proofly. Keep it consistent with
 Proofly provides private, on-device proofreading and writing assistance in
 Chrome. It proofreads text in the side-panel editor and, after per-site user
 opt-in, in editable fields on websites. It also includes a local notes library,
-a custom dictionary, rewrite prompts, and optional user-configured GitHub sync
-for notes.
+a custom dictionary, user-imported Harper Weirpacks, rewrite prompts, and
+optional user-configured GitHub sync for notes.
 
 ## Permission Justifications
 
@@ -20,11 +20,12 @@ panel.
 panel and opted-in pages share a local proofreading engine without keeping a
 visible page open.
 
-`storage`: Saves notes, custom dictionary entries, custom rewrite prompts,
-enabled-site intent, options, sync settings, and sync state. Both storage areas
-are restricted to trusted extension contexts; the opted-in website content
-script receives only its sanitized dictionary/settings subset from the service
-worker and cannot read notes or GitHub credentials.
+`storage`: Saves notes, custom dictionary entries, imported Harper Weirpacks,
+custom rewrite prompts, enabled-site intent, options, sync settings, and sync
+state. Both storage areas are restricted to trusted extension contexts; the
+opted-in website content script receives only its sanitized dictionary/settings
+subset from the service worker and cannot read notes, Weirpacks, or GitHub
+credentials.
 
 `unlimitedStorage`: Allows the local notes library to store user-created notes
 without Chrome's small extension local-storage quota becoming the limiting
@@ -49,15 +50,19 @@ Select: No, this extension does not execute remote code.
 Proofly's extension logic, Harper 2.4.0 JavaScript, and Harper's WebAssembly
 runtime are packaged in the extension. Optional GitHub sync
 uses GitHub's Contents API to read and write user note JSON in the repository
-the user configures. That remote data is not executable code.
+the user configures. User-imported Weirpacks are declarative Harper
+dictionary/rule archives validated and interpreted by the packaged runtime;
+they are not JavaScript or WebAssembly. That remote or synced data is not
+executed as code.
 
 ## Data Usage Disclosure
 
 Proofly handles user-provided content: text typed into the side-panel editor,
-saved notes, custom dictionary words, custom rewrite prompts, enabled-site
-preferences, and optional GitHub sync settings. If the user enables Proofly on a
-website, Proofly reads the focused editable field on that enabled site to
-provide proofreading suggestions and apply user-selected fixes.
+saved notes, custom dictionary words, imported Harper Weirpacks, custom rewrite
+prompts, enabled-site preferences, and optional GitHub sync settings. If the
+user enables Proofly on a website, Proofly reads the focused editable field on
+that enabled site to provide proofreading suggestions and apply user-selected
+fixes.
 
 Proofreading runs locally through packaged Harper WebAssembly and makes no
 network request. Rewriting uses Chrome's built-in on-device Rewriter API only
@@ -78,7 +83,8 @@ Data collected:
 - User activity: enabled-site preferences and extension settings.
 - Authentication information: GitHub personal access token, only if the user
   enables GitHub notes sync.
-- User content: notes, dictionary entries, custom prompts, and editor text.
+- User content: notes, dictionary entries, imported Weirpacks, custom prompts,
+  and editor text.
 
 Data use certifications:
 

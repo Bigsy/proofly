@@ -31,6 +31,7 @@ function makeWorker() {
     setDialect: vi.fn(async () => {}),
     clearWords: vi.fn(async () => {}),
     importWords: vi.fn(async () => {}),
+    loadWeirpackFromBytes: vi.fn(async () => undefined),
     dispose: vi.fn(async () => {}),
   };
 }
@@ -98,6 +99,58 @@ describe("Harper service", () => {
       type: "harper:configured", dialect: "american", configurationRevision: 3,
     });
     expect(worker.setLintConfig).toHaveBeenCalledTimes(2);
+  });
+
+  it("loads Weirpacks before user words and rebuilds the linter when packs are removed", async () => {
+    const first = makeWorker();
+    const second = makeWorker();
+    const createLinter = vi.fn()
+      .mockResolvedValueOnce(first)
+      .mockResolvedValueOnce(second);
+    const service = createHarperService({ createLinter });
+
+    await expect(service.handle({
+      type: "harper:configure",
+      dialect: "american",
+      words: ["Proofly"],
+      ruleOverrides: { LongSentences: false },
+      weirpacks: [{ id: "doccla", bytes: [80, 75, 3, 4] }],
+      configurationRevision: 1,
+    })).resolves.toMatchObject({ type: "harper:configured", configurationRevision: 1 });
+    expect(first.loadWeirpackFromBytes).toHaveBeenCalledWith([80, 75, 3, 4]);
+    expect(first.importWords).toHaveBeenCalledWith(["Proofly"]);
+
+    await expect(service.handle({
+      type: "harper:configure",
+      dialect: "american",
+      words: ["Proofly"],
+      ruleOverrides: { LongSentences: false },
+      weirpacks: [],
+      configurationRevision: 2,
+    })).resolves.toMatchObject({ type: "harper:configured", configurationRevision: 2 });
+    expect(first.dispose).toHaveBeenCalledOnce();
+    expect(second.loadWeirpackFromBytes).not.toHaveBeenCalled();
+    expect(createLinter).toHaveBeenCalledTimes(2);
+  });
+
+  it("rejects a Weirpack whose embedded tests fail and discards partial linter state", async () => {
+    const worker = makeWorker();
+    worker.loadWeirpackFromBytes.mockResolvedValue([{ test: "failure" }]);
+    const service = createHarperService({ createLinter: async () => worker });
+
+    await expect(service.handle({
+      type: "harper:configure",
+      dialect: "american",
+      words: [],
+      ruleOverrides: {},
+      weirpacks: [{ id: "broken", bytes: [1] }],
+      configurationRevision: 1,
+    })).resolves.toMatchObject({
+      type: "harper:error",
+      error: { code: "configure_failed", message: expect.stringContaining("failed its tests") },
+    });
+    expect(worker.dispose).toHaveBeenCalledOnce();
+    expect(service.status()).toMatchObject({ state: "error", dialect: null });
   });
 
   it("returns plain corrections and frees every Harper lint", async () => {

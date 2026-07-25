@@ -11,6 +11,9 @@ import {
   PAGE_PROOFING_SETTINGS_CHANGED, PAGE_STORAGE_GET,
 } from "../lib/storage-broker.js";
 import { EDITOR_ADAPTER_FLAGS_KEY } from "../page/content/adapter-flags.js";
+import {
+  WEIRPACK_INDEX_KEY, WEIRPACK_KEY_PREFIX,
+} from "../lib/weirpack-store.js";
 import { loadBackgroundWorker, makeChromeWorkerStub, settle } from "./helpers/background-worker.js";
 
 const GH = "https://github.com/*";
@@ -194,12 +197,39 @@ describe("Harper offscreen lifecycle", () => {
       type: "harper:configure", target: "harper:offscreen", dialect: "british",
       words: ["Acme", "Proofly"],
       ruleOverrides: { LongSentences: false },
+      weirpacks: [],
     });
     expect(lint).toMatchObject({
       type: "harper:lint", target: "harper:offscreen", requestId: 7,
       dialect: "british", configurationRevision: configure.configurationRevision,
     });
     expect(result).toEqual({ type: "harper:result", requestId: 7, corrections: [] });
+  });
+
+  it("passes complete synced Weirpack bytes only to the trusted Harper host", async () => {
+    const id = "0123456789abcdef0123456789abcdef";
+    const bytes = [80, 75, 3, 4];
+    const stub = makeChromeWorkerStub({
+      sync: {
+        [WEIRPACK_INDEX_KEY]: [{
+          id, name: "doccla.weirpack", size: bytes.length,
+          author: "Bill", version: "1.0.0", description: "",
+        }],
+        [`${WEIRPACK_KEY_PREFIX}${id}`]: {
+          data: btoa(String.fromCharCode(...bytes)),
+        },
+      },
+    });
+    const { forwardHarperRequest, handlePageStorageRequest } = await loadBackgroundWorker(stub);
+    await forwardHarperRequest({ type: "harper:lint", requestId: 8, text: "doccla" });
+
+    expect(stub.runtimeMessages[0]).toMatchObject({
+      type: "harper:configure",
+      weirpacks: [{ id, bytes }],
+    });
+    const pageSnapshot = await handlePageStorageRequest({ type: PAGE_STORAGE_GET });
+    expect(pageSnapshot).not.toHaveProperty("weirpacks");
+    expect(JSON.stringify(pageSnapshot)).not.toContain("doccla.weirpack");
   });
 
   it("reconfigures an existing worker on dictionary/settings changes without creating one eagerly", async () => {

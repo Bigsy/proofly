@@ -104,6 +104,29 @@
 
       <section class="section">
         <div class="section-head">
+          <h2>Harper Weirpacks</h2>
+          <p class="muted">
+            Add custom Harper dictionaries and rules. Small packs are stored
+            in your Chrome profile and synced between your signed-in Chromes.
+          </p>
+        </div>
+        <div class="card">
+          <input id="weirpackFile" type="file" accept=".weirpack,application/zip" hidden />
+          <div class="bulk-row bulk-row--topless">
+            <button id="importWeirpackBtn" class="btn btn--primary" type="button">
+              Import Weirpack…
+            </button>
+            <span id="weirpackStatus" class="muted" role="status"></span>
+          </div>
+          <p id="weirpackEmpty" class="placeholder weirpack-empty">
+            No Weirpacks installed.
+          </p>
+          <ul id="weirpackList" class="weirpack-list"></ul>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-head">
           <h2>Dictionary</h2>
           <p class="muted">
             Words Proofly should stop flagging — names, jargon, product terms.

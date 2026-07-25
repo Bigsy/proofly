@@ -17,6 +17,11 @@ import {
 } from "../lib/sync-settings.js";
 import { initDictionaryPage } from "../ui/dictionary-page.js";
 import { initSyncPage } from "../ui/sync-page.js";
+import {
+  loadWeirpackIndex, onWeirpacksChanged, removeWeirpack, saveWeirpack,
+} from "../lib/weirpack-store.js";
+import { validateWeirpack } from "../lib/weirpack-validator.js";
+import { initWeirpackPage } from "../ui/weirpack-page.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -32,6 +37,20 @@ initDictionaryPage({
     clearBtn: $("clearBtn"),
   },
   store: { loadDictionary, addWords, removeWord, clearDictionary, onDictionaryChanged },
+});
+
+initWeirpackPage({
+  els: {
+    file: $("weirpackFile"),
+    importBtn: $("importWeirpackBtn"),
+    status: $("weirpackStatus"),
+    list: $("weirpackList"),
+    empty: $("weirpackEmpty"),
+  },
+  store: {
+    loadWeirpackIndex, saveWeirpack, removeWeirpack, onWeirpacksChanged,
+  },
+  validate: validateWeirpack,
 });
 
 initSyncPage({
