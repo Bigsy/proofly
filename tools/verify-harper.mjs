@@ -4,7 +4,7 @@ import { deflateRawSync } from "node:zlib";
 import { Dialect, LocalLinter } from "../vendor/harper/index.js";
 import { binary } from "../vendor/harper/binary.js";
 
-const files = ["index.js", "BinaryModule-DTTQwokQ.js", "binary.js", "harper_wasm_bg.wasm", "LICENSE"];
+const files = ["index.js", "BinaryModule-Aj1vLnwf.js", "binary.js", "harper_wasm_bg.wasm", "LICENSE"];
 const paths = files.map((file) => new URL(`../vendor/harper/${file}`, import.meta.url));
 const installedBytes = (await Promise.all(paths.map((path) => stat(path))))
   .reduce((total, item) => total + item.size, 0);

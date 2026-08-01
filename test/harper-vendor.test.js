@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 describe("Harper store assets", () => {
-  it("are the exact pinned 2.4.0 files", () => {
+  it("are the exact pinned 2.7.0 files", () => {
     expect(() => execFileSync("bash", ["tools/vendor-harper.sh", "--check"], {
       cwd: root,
       stdio: "pipe",
@@ -23,7 +23,7 @@ describe("Harper store assets", () => {
   });
 
   it("stay within the 20 MiB installed runtime budget", () => {
-    const files = ["index.js", "BinaryModule-DTTQwokQ.js", "binary.js", "harper_wasm_bg.wasm", "LICENSE"];
+    const files = ["index.js", "BinaryModule-Aj1vLnwf.js", "binary.js", "harper_wasm_bg.wasm", "LICENSE"];
     const bytes = files.reduce((total, file) => total + statSync(join(root, "vendor/harper", file)).size, 0);
     expect(bytes).toBeLessThanOrEqual(20 * 1024 * 1024);
   });

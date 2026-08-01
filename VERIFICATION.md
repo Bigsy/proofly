@@ -1,6 +1,6 @@
 # Harper rollout verification
 
-Pinned engine: Harper 2.4.0. Last updated: 2026-07-16.
+Pinned engine: Harper 2.7.0. Last updated: 2026-08-01.
 
 ## Automated release gates
 
@@ -68,8 +68,8 @@ profile and the packaged Harper runtime:
 
 ## Measured baseline
 
-On the development machine, `npm run verify:harper` measured 17.64 MiB
-installed, 7.84 MiB compressed, 583 ms cold setup, and 20 ms for a warm
+On the development machine, `npm run verify:harper` measured 15.36 MiB
+installed, 7.70 MiB compressed, 625 ms cold setup, and 25 ms for a warm
 4,000-code-unit lint. The dedicated Chrome Beta 151 smoke run measured exactly
 one offscreen document across three opted-in tabs. After unrelated tabs were
 closed and the process tree settled, the dedicated profile used 1,827,632 KiB

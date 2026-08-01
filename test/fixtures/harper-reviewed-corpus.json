@@ -1,8 +1,8 @@
 {
   "_provenance": {
     "engine": "harper.js",
-    "version": "2.4.0",
-    "reviewed": "2026-07-11",
+    "version": "2.7.0",
+    "reviewed": "2026-08-01",
     "policy": "Primary suggestions and intentional misses are stable release expectations; diagnostic wording and secondary ranking are not asserted."
   },
   "dialects": [
@@ -18,6 +18,6 @@
     { "input": "This is is wrong.", "primary": ["is"], "types": ["repetition"] },
     { "input": "Could of gone.", "primary": ["Could have"], "types": ["wordchoice"] },
     { "input": "I seen two loafs yesterday", "primary": [], "expectedMiss": true },
-    { "input": "😀 colur\nélan", "primary": ["color", "lab"], "starts": [3, 11], "note": "Pins UTF-16 offsets and Harper 2.4.0's known combining-mark tokenization: e + combining acute is skipped and lan is suggested as lab." }
+    { "input": "😀 colur\nélan", "primary": ["color", "lab"], "starts": [3, 11], "note": "Pins UTF-16 offsets and Harper 2.7.0's known combining-mark tokenization: e + combining acute is skipped and lan is suggested as lab." }
   ]
 }

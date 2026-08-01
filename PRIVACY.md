@@ -13,7 +13,7 @@ enable Proofly on a website, it also processes text from the focused editable
 field on that site so it can show proofreading suggestions and apply fixes.
 Website proofreading is off by default and must be enabled per site by the user.
 
-Proofreading uses the packaged Harper 2.4.0 WebAssembly engine. It runs locally
+Proofreading uses the packaged Harper 2.7.0 WebAssembly engine. It runs locally
 inside the extension and makes no network request. Rewriting uses Chrome's
 built-in on-device Rewriter API only after the user explicitly chooses a
 rewrite action. Proofly does not send proofreading or rewriting text to Proofly

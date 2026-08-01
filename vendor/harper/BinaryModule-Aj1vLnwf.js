@@ -506,14 +506,15 @@ let Linter$1 = class Linter {
    * @param {boolean} all_headings
    * @param {string | null | undefined} regex_mask
    * @param {boolean} dedup
+   * @param {boolean} isolate_english
    * @returns {Lint[]}
    */
-  lint(text, language, all_headings, regex_mask, dedup) {
+  lint(text, language, all_headings, regex_mask, dedup, isolate_english) {
     const ptr0 = passStringToWasm0$1(text, wasm$1.__wbindgen_malloc, wasm$1.__wbindgen_realloc);
     const len0 = WASM_VECTOR_LEN$1;
     var ptr1 = isLikeNone$1(regex_mask) ? 0 : passStringToWasm0$1(regex_mask, wasm$1.__wbindgen_malloc, wasm$1.__wbindgen_realloc);
     var len1 = WASM_VECTOR_LEN$1;
-    const ret = wasm$1.linter_lint(this.__wbg_ptr, ptr0, len0, language, all_headings, ptr1, len1, dedup);
+    const ret = wasm$1.linter_lint(this.__wbg_ptr, ptr0, len0, language, all_headings, ptr1, len1, dedup, isolate_english);
     var v3 = getArrayJsValueFromWasm0$1(ret[0], ret[1]).slice();
     wasm$1.__wbindgen_free(ret[0], ret[1] * 4, 4);
     return v3;
@@ -535,14 +536,15 @@ let Linter$1 = class Linter {
    * @param {boolean} all_headings
    * @param {string | null | undefined} regex_mask
    * @param {boolean} dedup
+   * @param {boolean} isolate_english
    * @returns {OrganizedGroup[]}
    */
-  organized_lints(text, language, all_headings, regex_mask, dedup) {
+  organized_lints(text, language, all_headings, regex_mask, dedup, isolate_english) {
     const ptr0 = passStringToWasm0$1(text, wasm$1.__wbindgen_malloc, wasm$1.__wbindgen_realloc);
     const len0 = WASM_VECTOR_LEN$1;
     var ptr1 = isLikeNone$1(regex_mask) ? 0 : passStringToWasm0$1(regex_mask, wasm$1.__wbindgen_malloc, wasm$1.__wbindgen_realloc);
     var len1 = WASM_VECTOR_LEN$1;
-    const ret = wasm$1.linter_organized_lints(this.__wbg_ptr, ptr0, len0, language, all_headings, ptr1, len1, dedup);
+    const ret = wasm$1.linter_organized_lints(this.__wbg_ptr, ptr0, len0, language, all_headings, ptr1, len1, dedup, isolate_english);
     var v3 = getArrayJsValueFromWasm0$1(ret[0], ret[1]).slice();
     wasm$1.__wbindgen_free(ret[0], ret[1] * 4, 4);
     return v3;
@@ -1943,14 +1945,15 @@ class Linter2 {
    * @param {boolean} all_headings
    * @param {string | null | undefined} regex_mask
    * @param {boolean} dedup
+   * @param {boolean} isolate_english
    * @returns {Lint[]}
    */
-  lint(text, language, all_headings, regex_mask, dedup) {
+  lint(text, language, all_headings, regex_mask, dedup, isolate_english) {
     const ptr0 = passStringToWasm0(text, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
     const len0 = WASM_VECTOR_LEN;
     var ptr1 = isLikeNone(regex_mask) ? 0 : passStringToWasm0(regex_mask, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
     var len1 = WASM_VECTOR_LEN;
-    const ret = wasm.linter_lint(this.__wbg_ptr, ptr0, len0, language, all_headings, ptr1, len1, dedup);
+    const ret = wasm.linter_lint(this.__wbg_ptr, ptr0, len0, language, all_headings, ptr1, len1, dedup, isolate_english);
     var v3 = getArrayJsValueFromWasm0(ret[0], ret[1]).slice();
     wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
     return v3;
@@ -1972,14 +1975,15 @@ class Linter2 {
    * @param {boolean} all_headings
    * @param {string | null | undefined} regex_mask
    * @param {boolean} dedup
+   * @param {boolean} isolate_english
    * @returns {OrganizedGroup[]}
    */
-  organized_lints(text, language, all_headings, regex_mask, dedup) {
+  organized_lints(text, language, all_headings, regex_mask, dedup, isolate_english) {
     const ptr0 = passStringToWasm0(text, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
     const len0 = WASM_VECTOR_LEN;
     var ptr1 = isLikeNone(regex_mask) ? 0 : passStringToWasm0(regex_mask, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
     var len1 = WASM_VECTOR_LEN;
-    const ret = wasm.linter_organized_lints(this.__wbg_ptr, ptr0, len0, language, all_headings, ptr1, len1, dedup);
+    const ret = wasm.linter_organized_lints(this.__wbg_ptr, ptr0, len0, language, all_headings, ptr1, len1, dedup, isolate_english);
     var v3 = getArrayJsValueFromWasm0(ret[0], ret[1]).slice();
     wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
     return v3;

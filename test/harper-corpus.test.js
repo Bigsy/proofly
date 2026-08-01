@@ -83,7 +83,7 @@ describe(`reviewed Harper ${corpus._provenance.version} corpus`, () => {
   });
 });
 
-describe("pinned Harper 2.4.0 informational diagnostics", () => {
+describe("pinned Harper 2.7.0 informational diagnostics", () => {
   it("starts LongSentences above 40 words with one whole-sentence advice lint", async () => {
     expect(await lint(FORTY_WORD_SENTENCE)).toEqual([]);
 

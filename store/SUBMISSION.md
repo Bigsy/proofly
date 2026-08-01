@@ -47,7 +47,7 @@ logic.
 
 Select: No, this extension does not execute remote code.
 
-Proofly's extension logic, Harper 2.4.0 JavaScript, and Harper's WebAssembly
+Proofly's extension logic, Harper 2.7.0 JavaScript, and Harper's WebAssembly
 runtime are packaged in the extension. Optional GitHub sync
 uses GitHub's Contents API to read and write user note JSON in the repository
 the user configures. User-imported Weirpacks are declarative Harper
