@@ -1,12 +1,12 @@
 // ui/dictionary-page.js — the options page's dictionary manager: the word
-// list (search, per-word remove, two-step Clear all), bulk paste, and the
-// sync-quota meter.
+// list (search, per-word remove, two-step Clear all), bulk paste, newline-
+// delimited text import/export, and the sync-quota meter.
 //
 // Wired by initDictionaryPage(deps), mirroring ui/library.js — deps are
 // injected so the module is unit-testable without chrome (and the thin entry,
 // options/options.js, stays trivial):
 //   els   — element map (search, bulkInput, bulkBtn, bulkReport, list, empty,
-//           meter, clearBtn)
+//           meter, importFile, importBtn, exportBtn, transferStatus, clearBtn)
 //   store — { loadDictionary, addWords, removeWord, clearDictionary,
 //           onDictionaryChanged } (lib/dictionary-store.js or a test stub)
 //
@@ -21,6 +21,7 @@ import { DICTIONARY_KEY } from "../lib/dictionary-store.js";
 // value, capped at 8192 bytes. Mirrored here for the meter — reading the real
 // constant would need chrome at module scope.
 export const SYNC_QUOTA_BYTES = 8192;
+export const DICTIONARY_FILENAME = "proofly-dictionary.txt";
 
 const QUOTA_ERROR =
   "Over Chrome's sync storage limit (~8 KB for the whole dictionary) — remove some words first.";
@@ -66,6 +67,7 @@ export function initDictionaryPage({ els, store }) {
 
     drawMeter();
     els.clearBtn.disabled = !words.length;
+    els.exportBtn.disabled = !words.length;
   }
 
   // "N words · ~X KB of 8 KB sync quota" — the same arithmetic Chrome bills:
@@ -83,6 +85,11 @@ export function initDictionaryPage({ els, store }) {
   function bulkReport(msg, isError = false) {
     els.bulkReport.textContent = msg;
     els.bulkReport.classList.toggle("error", isError);
+  }
+
+  function transferReport(msg, isError = false) {
+    els.transferStatus.textContent = msg;
+    els.transferStatus.classList.toggle("error", isError);
   }
 
   const isQuotaError = (e) => /quota/i.test(e?.message ?? "");
@@ -113,6 +120,60 @@ export function initDictionaryPage({ els, store }) {
     } catch (e) {
       bulkReport(isQuotaError(e) ? QUOTA_ERROR : `Couldn't save: ${e.message || e}`, true);
     }
+  }
+
+  // ---------- text import / export ----------
+  // Import is additive: one entry per line, blank lines ignored. The normal
+  // dictionary validation and ONE-write addWords path still own canonical
+  // storage, so an import cannot bypass token limits or duplicate handling.
+  async function importSelected() {
+    const [file] = els.importFile.files ?? [];
+    els.importFile.value = "";
+    if (!file) return;
+
+    els.importBtn.disabled = true;
+    transferReport(`Importing ${file.name}…`);
+    try {
+      const lines = (await file.text())
+        .replace(/^\uFEFF/u, "")
+        .split(/\r\n?|\n/u)
+        .map((line) => line.trim())
+        .filter(Boolean);
+      if (!lines.length) {
+        transferReport("That file doesn't contain any words.", true);
+        return;
+      }
+
+      const fresh = [];
+      const seen = new Set(words);
+      for (const line of lines) {
+        if (!isValidWord(line) || seen.has(line)) continue;
+        seen.add(line);
+        fresh.push(line);
+      }
+      const skipped = lines.length - fresh.length;
+      if (fresh.length) words = await store.addWords(fresh);
+      transferReport(
+        `Imported ${fresh.length}${skipped ? `, skipped ${skipped} (already present or invalid)` : ""}.`,
+      );
+      draw();
+    } catch (e) {
+      transferReport(isQuotaError(e) ? QUOTA_ERROR : `Couldn't import: ${e.message || e}`, true);
+    } finally {
+      els.importBtn.disabled = false;
+    }
+  }
+
+  function exportDictionary() {
+    if (!words.length) return;
+    const blob = new Blob([`${words.join("\n")}\n`], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = DICTIONARY_FILENAME;
+    anchor.click();
+    URL.revokeObjectURL(url);
+    transferReport(`Exported ${words.length} word${words.length === 1 ? "" : "s"}.`);
   }
 
   // ---------- remove / clear ----------
@@ -154,6 +215,9 @@ export function initDictionaryPage({ els, store }) {
     draw();
   });
   els.bulkBtn.addEventListener("click", addBulk);
+  els.importBtn.addEventListener("click", () => els.importFile.click());
+  els.importFile.addEventListener("change", importSelected);
+  els.exportBtn.addEventListener("click", exportDictionary);
   els.clearBtn.addEventListener("click", clearAll);
 
   // Live: edits from the side panel, the in-page popup, or another device via

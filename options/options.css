@@ -349,7 +349,21 @@ textarea { display: block; width: 100%; }
   gap: 10px;
   margin-top: 12px;
 }
+.list-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.transfer-hint,
+.transfer-status { margin: 8px 0 0; }
 .muted { color: var(--muted); font-size: 12px; }
+
+@media (max-width: 520px) {
+  .list-foot { align-items: flex-start; flex-direction: column; }
+  .list-actions { justify-content: flex-start; }
+}
 
 /* ---------- Harper Weirpacks ---------- */
 .weirpack-empty { margin-top: 12px; }

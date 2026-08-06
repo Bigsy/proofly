@@ -92,7 +92,7 @@ is enabled.
   opted-in pages — and every correction card offers **Add to dictionary** for
   single-word spelling complaints; one click suppresses *every* instance of
   the word, instantly, without re-proofreading. Bulk management (search, add
-  one, paste many, remove, clear all, a sync-quota meter) lives on the
+  one, paste many, import/export text files, remove, clear all, a sync-quota meter) lives on the
   **options page** — *Manage dictionary…* in the toolbar menu or the side
   panel's Options. The list lives in `chrome.storage.sync`, so it follows you
   across signed-in Chromes; see
@@ -199,6 +199,12 @@ options page shows a usage meter, and a write past the quota fails loudly
 (nothing is truncated). Sync conflicts are last-write-wins on the whole list:
 two devices adding words in the same sync window can lose one (rare;
 self-healing — just add it again).
+
+The options page can export the sorted dictionary as
+`proofly-dictionary.txt`, with one word per line. Importing the same simple
+format adds valid new entries to the current dictionary; it ignores blank
+lines and skips duplicates or invalid multi-word entries without replacing
+anything already stored.
 
 ## Harper Weirpacks
 

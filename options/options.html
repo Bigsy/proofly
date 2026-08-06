@@ -146,6 +146,7 @@
         </div>
 
         <div class="card">
+          <input id="dictImportFile" type="file" accept=".txt,text/plain" hidden />
           <div class="list-head">
             <h3>Words</h3>
             <input id="dictSearch" type="search" placeholder="Search words…" />
@@ -154,9 +155,17 @@
           <ul id="wordList" class="word-list"></ul>
           <div class="list-foot">
             <span id="quotaMeter" class="muted"></span>
-            <!-- Two-step inline confirm (the library's delete pattern). -->
-            <button id="clearBtn" class="btn btn--danger">Clear all</button>
+            <div class="list-actions">
+              <button id="importDictBtn" class="btn" type="button">Import…</button>
+              <button id="exportDictBtn" class="btn" type="button">Export</button>
+              <!-- Two-step inline confirm (the library's delete pattern). -->
+              <button id="clearBtn" class="btn btn--danger" type="button">Clear all</button>
+            </div>
           </div>
+          <p class="muted transfer-hint">
+            Text files use one word per line. Import adds valid new words to the existing list.
+          </p>
+          <p id="dictTransferStatus" class="muted transfer-status" role="status"></p>
         </div>
       </section>
     </main>

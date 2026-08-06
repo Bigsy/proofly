@@ -67,6 +67,10 @@ async function loadDictionaryPage(initial = []) {
       list: $("wordList"),
       empty: $("dictEmpty"),
       meter: $("quotaMeter"),
+      importFile: $("dictImportFile"),
+      importBtn: $("importDictBtn"),
+      exportBtn: $("exportDictBtn"),
+      transferStatus: $("dictTransferStatus"),
       clearBtn: $("clearBtn"),
     },
     store,
@@ -91,6 +95,7 @@ describe("rendering", () => {
     expect($("dictEmpty").hidden).toBe(true);
     expect($("quotaMeter").textContent).toMatch(/^3 words · ~0\.\d KB of 8 KB sync quota$/);
     expect($("clearBtn").disabled).toBe(false);
+    expect($("exportDictBtn").disabled).toBe(false);
   });
 
   it("renders the empty state with Clear all disabled", async () => {
@@ -100,6 +105,82 @@ describe("rendering", () => {
     expect($("dictEmpty").textContent).toMatch(/No words yet/);
     expect($("quotaMeter").textContent).toMatch(/^0 words/);
     expect($("clearBtn").disabled).toBe(true);
+    expect($("exportDictBtn").disabled).toBe(true);
+  });
+});
+
+describe("text import and export", () => {
+  async function importFile(name, text) {
+    Object.defineProperty($("dictImportFile"), "files", {
+      configurable: true,
+      value: [{ name, text: vi.fn(async () => text) }],
+    });
+    $("dictImportFile").dispatchEvent(new Event("change"));
+    await settle();
+  }
+
+  it("imports one entry per line additively, ignoring blanks and skipping duplicates or invalid lines", async () => {
+    const store = await loadDictionaryPage(["existing"]);
+    await importFile(
+      "dictionary.txt",
+      "\uFEFFalpha\r\n\r\nexisting\r\ntwo words\r\nbeta\r\nalpha\r\n",
+    );
+
+    expect(store.addWords).toHaveBeenCalledTimes(1);
+    expect(store.addWords).toHaveBeenCalledWith(["alpha", "beta"]);
+    expect(store.writes).toHaveLength(1);
+    expect(listedWords()).toEqual(["alpha", "beta", "existing"]);
+    expect($("dictTransferStatus").textContent)
+      .toBe("Imported 2, skipped 3 (already present or invalid).");
+    expect($("dictImportFile").value).toBe("");
+  });
+
+  it("rejects an empty text file without writing", async () => {
+    const store = await loadDictionaryPage([]);
+    await importFile("empty.txt", " \n\r\n");
+    expect(store.addWords).not.toHaveBeenCalled();
+    expect($("dictTransferStatus").textContent)
+      .toBe("That file doesn't contain any words.");
+    expect($("dictTransferStatus").classList.contains("error")).toBe(true);
+  });
+
+  it("surfaces an import quota error", async () => {
+    const store = await loadDictionaryPage([]);
+    store.failWith(new Error("QUOTA_BYTES_PER_ITEM exceeded"));
+    await importFile("dictionary.txt", "alpha\nbeta\n");
+    expect($("dictTransferStatus").textContent).toMatch(/sync storage limit/);
+    expect($("dictTransferStatus").classList.contains("error")).toBe(true);
+  });
+
+  it("exports the sorted list as newline-delimited UTF-8 text", async () => {
+    await loadDictionaryPage(["zebra", "Acme", "alpha"]);
+    let exportedBlob;
+    const originalCreateObjectURL = URL.createObjectURL;
+    const originalRevokeObjectURL = URL.revokeObjectURL;
+    URL.createObjectURL = vi.fn((blob) => {
+      exportedBlob = blob;
+      return "blob:dictionary-test";
+    });
+    URL.revokeObjectURL = vi.fn();
+    const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+
+    $("exportDictBtn").click();
+
+    expect(click).toHaveBeenCalledTimes(1);
+    expect(click.mock.instances[0].download).toBe("proofly-dictionary.txt");
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:dictionary-test");
+    expect($("dictTransferStatus").textContent).toBe("Exported 3 words.");
+    expect(exportedBlob.type).toBe("text/plain;charset=utf-8");
+    const contents = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(reader.error);
+      reader.readAsText(exportedBlob);
+    });
+    expect(contents).toBe("Acme\nalpha\nzebra\n");
+
+    URL.createObjectURL = originalCreateObjectURL;
+    URL.revokeObjectURL = originalRevokeObjectURL;
   });
 });
 
