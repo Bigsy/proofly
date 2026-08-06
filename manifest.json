@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Proofly",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Proofly — private, offline proofreading powered by packaged Harper, with optional Chrome AI rewrites.",
   "homepage_url": "https://github.com/Bigsy/proofly",
   "minimum_chrome_version": "141",

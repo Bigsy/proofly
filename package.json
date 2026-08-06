@@ -2,7 +2,7 @@
   "name": "proofly",
   "private": true,
   "license": "MIT",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Proofly — private, on-device proofreading Chrome extension (no build step; this package holds the dev/test tooling).",
   "scripts": {
     "test": "vitest run",
