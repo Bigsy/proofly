@@ -24,7 +24,7 @@ function makeEmitter() {
   };
 }
 
-// pattern "https://host/*" ⊇ url — the only match shape the SW uses.
+// pattern "https://host/*" ⊇ url — the only registration match shape the SW uses.
 function urlMatches(pattern, url) {
   return typeof url === "string" && pattern.endsWith("/*")
     && url.startsWith(pattern.slice(0, -1));
@@ -47,6 +47,8 @@ export function makeChromeWorkerStub({
   const actionCalls = [];       // every chrome.action.* call: { method, args }
   const offscreenDocuments = [];
   const runtimeMessages = [];
+  const hasOrigin = (origin) => origins.has(origin)
+    || (origin !== "*://*/*" && origins.has("*://*/*"));
 
   const chrome = {
     storage: {
@@ -59,7 +61,7 @@ export function makeChromeWorkerStub({
       onRemoved: makeEmitter(),
       getAll: vi.fn(async () => ({ origins: [...origins] })),
       contains: vi.fn(async ({ origins: asked = [] } = {}) =>
-        asked.every((o) => origins.has(o))),
+        asked.every(hasOrigin)),
     },
     scripting: {
       getRegisteredContentScripts: vi.fn(async () =>

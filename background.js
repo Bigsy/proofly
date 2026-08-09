@@ -222,6 +222,16 @@ async function readIntent() {
   }
 }
 
+async function grantedIntentPatterns(intent) {
+  const patterns = Object.keys(intent)
+    .filter((pattern) => !!intent[pattern] && PER_SITE_PATTERN.test(pattern));
+  const checks = await Promise.all(patterns.map(async (pattern) => ({
+    pattern,
+    granted: await chrome.permissions.contains({ origins: [pattern] }),
+  })));
+  return checks.filter(({ granted }) => granted).map(({ pattern }) => pattern);
+}
+
 // ---------- content-script registration ----------
 // Keep registrations equal to { intended ∩ granted }. Idempotent per run, but
 // must not OVERLAP: every trigger calls reconcile(), and a single user action
@@ -240,8 +250,9 @@ function reconcile() {
 async function reconcileOnce() {
   try {
     const intent = await readIntent();
-    const granted = new Set((await chrome.permissions.getAll()).origins ?? []);
-    const want = new Set(Object.keys(intent).filter((p) => granted.has(p)));
+    // permissions.contains() understands that a broad *://*/* grant satisfies
+    // each individual intended origin; getAll() only returns the broad token.
+    const want = new Set(await grantedIntentPatterns(intent));
 
     const registered = await chrome.scripting.getRegisteredContentScripts();
     const ours = registered.filter((s) => s.id.startsWith(SCRIPT_ID_PREFIX));
@@ -437,7 +448,14 @@ chrome.permissions.onAdded.addListener(async ({ origins }) => {
     }
     if (changed) await chrome.storage.sync.set({ [SITES_KEY]: intent });
     await reconcile();
-    for (const o of origins) if (intent[o]) await injectIntoOpenTabs(o);
+    // A broad grant is permission only, never broad intent. Activate and inject
+    // the already-synced per-site intentions it now satisfies. A newly adopted
+    // exact grant is injected by storage.onChanged, avoiding a double bootstrap.
+    if (!changed) {
+      for (const pattern of await grantedIntentPatterns(intent)) {
+        await injectIntoOpenTabs(pattern);
+      }
+    }
     await refreshAllTabIcons();
   } catch (err) {
     console.error("permissions.onAdded handling failed:", err);
@@ -445,8 +463,15 @@ chrome.permissions.onAdded.addListener(async ({ origins }) => {
 });
 
 chrome.permissions.onRemoved.addListener(async ({ origins }) => {
+  if (!origins?.length) return;
+  const intent = await readIntent();
+  const stillGranted = new Set(await grantedIntentPatterns(intent));
   await reconcile();
-  await broadcastTeardown(origins ?? []);
+  // Removing a broad grant reports *://*/*, which content pages cannot compare
+  // to their per-site pattern. Expand it to the intended sites that lost access.
+  const lost = Object.keys(intent)
+    .filter((pattern) => !!intent[pattern] && !stillGranted.has(pattern));
+  await broadcastTeardown(lost);
   await refreshAllTabIcons();
 });
 
@@ -469,7 +494,14 @@ chrome.storage.onChanged.addListener(async (changes, area) => {
     const before = asSiteMap(changes[SITES_KEY].oldValue);
     const after = asSiteMap(changes[SITES_KEY].newValue);
     const dropped = Object.keys(before).filter((p) => !after[p]);
+    const added = Object.keys(after).filter((p) => after[p] && !before[p]);
     await reconcile();
+    // With an existing broad grant, enabling a new site does not fire
+    // permissions.onAdded. Inject it into already-open tabs from intent alone.
+    const newlyEffective = await grantedIntentPatterns(
+      Object.fromEntries(added.map((pattern) => [pattern, true])),
+    );
+    for (const pattern of newlyEffective) await injectIntoOpenTabs(pattern);
     await broadcastTeardown(dropped);
     await refreshAllTabIcons();
   }

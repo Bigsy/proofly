@@ -5,7 +5,7 @@
 // per-site scope never widens.
 
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { SITES_KEY } from "../lib/sites.js";
+import { ALL_SITES_PATTERN, SITES_KEY } from "../lib/sites.js";
 import {
   PAGE_ADAPTER_FLAGS_CHANGED, PAGE_DICTIONARY_CHANGED, PAGE_DICTIONARY_UPDATE,
   PAGE_PROOFING_SETTINGS_CHANGED, PAGE_STORAGE_GET,
@@ -124,6 +124,19 @@ describe("reconcile: registrations = intent ∩ granted", () => {
     expect(reg.allFrames).toBe(true);
     expect(reg.matchOriginAsFallback).toBe(true);
     expect(reg.runAt).toBe("document_idle");
+  });
+
+  it("treats an all-site grant as permission for each intended site", async () => {
+    const stub = makeChromeWorkerStub({
+      sync: { [SITES_KEY]: { [GH]: true, [EX]: true } },
+      granted: [ALL_SITES_PATTERN],
+    });
+    await loadBackgroundWorker(stub);
+
+    expect(stub.registryIds()).toEqual([
+      `proofly-page:${EX}`,
+      `proofly-page:${GH}`,
+    ]);
   });
 
   it("removes stale and drifted registrations, leaves foreign ids alone", async () => {
@@ -331,6 +344,29 @@ describe("permissions.onAdded", () => {
     expect(stub.registryIds()).toEqual([]);
     expect(stub.injected).toEqual([]);
   });
+
+  it("uses a broad grant to activate existing synced intent without widening it", async () => {
+    const stub = makeChromeWorkerStub({
+      sync: { [SITES_KEY]: { [GH]: true } },
+      tabs: [
+        { id: 1, url: "https://github.com/anthropics" },
+        { id: 2, url: "https://example.com/" },
+      ],
+    });
+    await loadBackgroundWorker(stub);
+
+    stub.grant(ALL_SITES_PATTERN);
+    await stub.chrome.permissions.onAdded.emit({ origins: [ALL_SITES_PATTERN] });
+    await settle();
+
+    expect(await stub.chrome.storage.sync.get(SITES_KEY))
+      .toEqual({ [SITES_KEY]: { [GH]: true } });
+    expect(stub.registryIds()).toEqual([`proofly-page:${GH}`]);
+    expect(stub.injected).toEqual([{
+      target: { tabId: 1, allFrames: true },
+      files: ["page/content/bootstrap.js"],
+    }]);
+  });
 });
 
 describe("disable paths", () => {
@@ -356,6 +392,28 @@ describe("disable paths", () => {
     ]);
   });
 
+  it("expands removal of broad access into per-site teardown messages", async () => {
+    const stub = makeChromeWorkerStub({
+      sync: { [SITES_KEY]: { [GH]: true, [EX]: true } },
+      granted: [ALL_SITES_PATTERN],
+      tabs: [{ id: 1, url: "https://github.com/x" }, { id: 2, url: "https://example.com/" }],
+    });
+    await loadBackgroundWorker(stub);
+    expect(stub.registryIds()).toHaveLength(2);
+
+    stub.revoke(ALL_SITES_PATTERN);
+    await stub.chrome.permissions.onRemoved.emit({ origins: [ALL_SITES_PATTERN] });
+    await settle();
+
+    expect(stub.registryIds()).toEqual([]);
+    expect(stub.sentMessages).toEqual([
+      { tabId: 1, message: { type: "proofly:teardown", pattern: GH } },
+      { tabId: 1, message: { type: "proofly:teardown", pattern: EX } },
+      { tabId: 2, message: { type: "proofly:teardown", pattern: GH } },
+      { tabId: 2, message: { type: "proofly:teardown", pattern: EX } },
+    ]);
+  });
+
   it("intent dropped on another device unregisters here and tears down live tabs", async () => {
     const stub = makeChromeWorkerStub({
       sync: { [SITES_KEY]: { [GH]: true } },
@@ -372,6 +430,23 @@ describe("disable paths", () => {
     expect(stub.sentMessages).toEqual([
       { tabId: 7, message: { type: "proofly:teardown", pattern: GH } },
     ]);
+  });
+
+  it("injects newly synced intent immediately when broad access already exists", async () => {
+    const stub = makeChromeWorkerStub({
+      granted: [ALL_SITES_PATTERN],
+      tabs: [{ id: 7, url: "https://github.com/x" }],
+    });
+    await loadBackgroundWorker(stub);
+
+    await stub.chrome.storage.sync.set({ [SITES_KEY]: { [GH]: true } });
+    await settle();
+
+    expect(stub.registryIds()).toEqual([`proofly-page:${GH}`]);
+    expect(stub.injected).toEqual([{
+      target: { tabId: 7, allFrames: true },
+      files: ["page/content/bootstrap.js"],
+    }]);
   });
 
   it("ignores non-sync storage areas and unrelated keys", async () => {

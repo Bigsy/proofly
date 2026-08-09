@@ -9,7 +9,9 @@
 // scripts mid-flight. Intent is written BEFORE the request for the same
 // reason — it must survive the popup dying.
 
-import { asSiteMap, originPattern, patternLabel, SITES_KEY } from "../lib/sites.js";
+import {
+  ALL_SITES_PATTERN, asSiteMap, originPattern, patternLabel, SITES_KEY,
+} from "../lib/sites.js";
 
 const $ = (id) => document.getElementById(id);
 const els = {
@@ -20,6 +22,8 @@ const els = {
   siteName: $("siteName"),
   siteToggle: $("siteToggle"),
   siteNote: $("siteNote"),
+  activateSynced: $("activateSynced"),
+  allowAllSites: $("allowAllSites"),
 };
 
 function setStatus(kind, text) {
@@ -43,6 +47,16 @@ async function writeIntent(pattern, on) {
   // ~8 KB sync quota per item (thousands of origins); a set() past it rejects
   // loudly — surfaced via the catch in the click handler, never truncated.
   await chrome.storage.sync.set({ [SITES_KEY]: map });
+}
+
+async function missingIntendedPatterns(intentMap = null) {
+  intentMap ??= await readIntent();
+  const patterns = Object.keys(intentMap).filter((candidate) => !!intentMap[candidate]);
+  const checks = await Promise.all(patterns.map(async (candidate) => ({
+    pattern: candidate,
+    granted: await chrome.permissions.contains({ origins: [candidate] }),
+  })));
+  return checks.filter(({ granted }) => !granted).map(({ pattern: candidate }) => candidate);
 }
 
 // Captured once at load: sidePanel.open() must run inside the click gesture,
@@ -80,6 +94,26 @@ async function refreshSiteRow() {
   els.siteNote.textContent = "Enabled on another device — click to activate here.";
 }
 
+async function refreshAccessControls() {
+  const allSitesGranted = await chrome.permissions.contains({ origins: [ALL_SITES_PATTERN] });
+  const missing = allSitesGranted ? [] : await missingIntendedPatterns();
+
+  els.activateSynced.hidden = missing.length === 0;
+  els.activateSynced.disabled = false;
+  els.activateSynced.textContent = missing.length === 1
+    ? "Activate 1 synced site"
+    : `Activate ${missing.length} synced sites`;
+
+  els.allowAllSites.disabled = allSitesGranted;
+  els.allowAllSites.textContent = allSitesGranted
+    ? "Access to all sites allowed"
+    : "Allow access to all sites";
+}
+
+async function refreshControls() {
+  await Promise.all([refreshSiteRow(), refreshAccessControls()]);
+}
+
 async function toggleSite() {
   els.siteToggle.disabled = true;
   try {
@@ -94,14 +128,35 @@ async function toggleSite() {
       await chrome.permissions.remove({ origins: [pattern] });
     } else {
       await writeIntent(pattern, true);
-      await chrome.permissions.request({ origins: [pattern] });
+      if (!granted) await chrome.permissions.request({ origins: [pattern] });
       // Granted or denied, the SW reconciles from intent + actual grants;
       // if we're still alive, just re-render whatever state resulted.
     }
   } catch {
     // Quota or permissions error — leave the row reflecting reality.
   }
-  await refreshSiteRow();
+  await refreshControls();
+}
+
+async function activateSyncedSites() {
+  els.activateSynced.disabled = true;
+  try {
+    const missing = await missingIntendedPatterns();
+    if (missing.length) await chrome.permissions.request({ origins: missing });
+  } catch {
+    // A denied native prompt leaves the controls reflecting actual grants.
+  }
+  await refreshControls();
+}
+
+async function allowAllSites() {
+  els.allowAllSites.disabled = true;
+  try {
+    await chrome.permissions.request({ origins: [ALL_SITES_PATTERN] });
+  } catch {
+    // A denied native prompt leaves the controls reflecting actual grants.
+  }
+  await refreshControls();
 }
 
 els.openPanel.addEventListener("click", () => {
@@ -112,6 +167,8 @@ els.openPanel.addEventListener("click", () => {
 });
 
 els.siteToggle.addEventListener("click", toggleSite);
+els.activateSynced.addEventListener("click", activateSyncedSites);
+els.allowAllSites.addEventListener("click", allowAllSites);
 
 // The custom dictionary lives on the options page (a real tab — see
 // manifest options_ui.open_in_tab).
@@ -126,5 +183,5 @@ els.manageDict.addEventListener("click", () => {
   setStatus("ok", "Proofreading ready.");
   [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   pattern = tab?.url ? originPattern(tab.url) : null;
-  await refreshSiteRow();
+  await refreshControls();
 })();

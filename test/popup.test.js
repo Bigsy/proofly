@@ -6,10 +6,11 @@
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 import popupHtml from "../popup/popup.html?raw";
-import { SITES_KEY } from "../lib/sites.js";
+import { ALL_SITES_PATTERN, SITES_KEY } from "../lib/sites.js";
 import { installChromeStorageStub } from "./helpers/chrome-storage.js";
 
 const GH = "https://github.com/*";
+const EX = "https://example.com/*";
 
 const popupBody = popupHtml
   .match(/<body>([\s\S]*)<\/body>/)[1]
@@ -24,6 +25,8 @@ async function loadPopup({
 } = {}) {
   const seq = []; // interleaving of intent writes and permission calls
   const grantedSet = new Set(granted);
+  const hasOrigin = (origin) => grantedSet.has(origin)
+    || (origin !== ALL_SITES_PATTERN && grantedSet.has(ALL_SITES_PATTERN));
 
   document.body.innerHTML = popupBody;
   const chrome = installChromeStorageStub({ [SITES_KEY]: intent });
@@ -36,7 +39,7 @@ async function loadPopup({
     query: vi.fn(async () => (url === null ? [] : [{ id: 1, url }])),
   };
   chrome.permissions = {
-    contains: vi.fn(async ({ origins = [] } = {}) => origins.every((o) => grantedSet.has(o))),
+    contains: vi.fn(async ({ origins = [] } = {}) => origins.every(hasOrigin)),
     request: vi.fn(async ({ origins = [] } = {}) => {
       seq.push({ request: origins });
       for (const o of origins) grantedSet.add(o);
@@ -109,11 +112,57 @@ describe("per-site toggle", () => {
     expect($("siteNote").textContent).toContain("another device");
   });
 
+  it("enables a new site without another permission request after broad access", async () => {
+    const { seq } = await loadPopup({ granted: [ALL_SITES_PATTERN] });
+
+    $("siteToggle").click();
+    await settle();
+
+    expect(seq).toEqual([{ intent: { [GH]: true } }]);
+    expect($("siteToggle").textContent).toBe("Disable Proofly on this site");
+  });
+
   it("disables the toggle on pages that can't host the feature", async () => {
     await loadPopup({ url: "chrome://extensions" });
     expect($("siteToggle").disabled).toBe(true);
     expect($("siteToggle").textContent).toBe("Not available on this page");
     expect($("siteName").textContent).toBe("This page can't be proofread.");
+  });
+});
+
+describe("cross-browser site access", () => {
+  it("requests every missing synced site together in one user gesture", async () => {
+    const { seq } = await loadPopup({
+      intent: { [GH]: true, [EX]: true },
+      granted: [GH],
+    });
+    expect($("activateSynced").hidden).toBe(false);
+    expect($("activateSynced").textContent).toBe("Activate 1 synced site");
+
+    $("activateSynced").click();
+    await settle();
+
+    expect(seq).toEqual([{ request: [EX] }]);
+    expect($("activateSynced").hidden).toBe(true);
+  });
+
+  it("can grant all-site access once while leaving intent per-site", async () => {
+    const { seq } = await loadPopup({ intent: { [GH]: true } });
+
+    $("allowAllSites").click();
+    await settle();
+
+    expect(seq).toEqual([{ request: [ALL_SITES_PATTERN] }]);
+    expect($("allowAllSites").disabled).toBe(true);
+    expect($("allowAllSites").textContent).toBe("Access to all sites allowed");
+    expect($("activateSynced").hidden).toBe(true);
+    expect($("siteToggle").textContent).toBe("Disable Proofly on this site");
+  });
+
+  it("hides batch activation when no synced site is missing", async () => {
+    await loadPopup({ intent: { [GH]: true }, granted: [GH] });
+    expect($("activateSynced").hidden).toBe(true);
+    expect($("allowAllSites").disabled).toBe(false);
   });
 });
 
