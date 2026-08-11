@@ -1,35 +1,31 @@
 // ui/dictionary-page.js — the options page's dictionary manager: the word
 // list (search, per-word remove, two-step Clear all), bulk paste, newline-
-// delimited text import/export, and the sync-quota meter.
+// delimited text import/export, and the Chrome-sync/local-only control.
 //
 // Wired by initDictionaryPage(deps), mirroring ui/library.js — deps are
 // injected so the module is unit-testable without chrome (and the thin entry,
 // options/options.js, stays trivial):
 //   els   — element map (search, bulkInput, bulkBtn, bulkReport, list, empty,
-//           meter, importFile, importBtn, exportBtn, transferStatus, clearBtn)
+//           meter, importFile, importBtn, exportBtn, transferStatus, clearBtn,
+//           syncToggle, syncStatus)
 //   store — { loadDictionary, addWords, removeWord, clearDictionary,
-//           onDictionaryChanged } (lib/dictionary-store.js or a test stub)
+//           loadDictionarySettings, setDictionarySyncEnabled,
+//           onDictionaryChanged, onDictionarySettingsChanged }
 //
-// Storage writes go through the store's read-modify-write helpers: every bulk
-// operation is ONE set(). A quota rejection (the ~8 KB per-item sync cap)
-// propagates from the store and surfaces as an inline error naming the limit.
+// Storage writes go through the store's conflict-resistant helpers: every
+// bulk operation is ONE set(). Quota rejections still surface inline.
 
 import { isValidWord } from "../lib/dictionary.js";
-import { DICTIONARY_KEY } from "../lib/dictionary-store.js";
-
-// chrome.storage.sync's QUOTA_BYTES_PER_ITEM: key length + JSON-stringified
-// value, capped at 8192 bytes. Mirrored here for the meter — reading the real
-// constant would need chrome at module scope.
-export const SYNC_QUOTA_BYTES = 8192;
 export const DICTIONARY_FILENAME = "proofly-dictionary.txt";
 
 const QUOTA_ERROR =
-  "Over Chrome's sync storage limit (~8 KB for the whole dictionary) — remove some words first.";
+  "Chrome's sync storage limit was reached — remove some words or turn dictionary sync off.";
 
 export function initDictionaryPage({ els, store }) {
   let words = [];   // current sorted list (the store owns canonical order)
   let query = "";   // live search filter
   let clearArmed = false;
+  let syncEnabled = true;
 
   // ---------- rendering ----------
   function draw() {
@@ -70,15 +66,18 @@ export function initDictionaryPage({ els, store }) {
     els.exportBtn.disabled = !words.length;
   }
 
-  // "N words · ~X KB of 8 KB sync quota" — the same arithmetic Chrome bills:
-  // key length + JSON size of the value.
   function drawMeter() {
-    const bytes = DICTIONARY_KEY.length
-      + new TextEncoder().encode(JSON.stringify(words)).length;
-    const kb = (bytes / 1024).toFixed(1);
     const n = words.length;
     els.meter.textContent =
-      `${n} word${n === 1 ? "" : "s"} · ~${kb} KB of ${SYNC_QUOTA_BYTES / 1024} KB sync quota`;
+      `${n} word${n === 1 ? "" : "s"} · ${syncEnabled ? "Chrome sync on" : "This browser only"}`;
+  }
+
+  function drawSyncSetting() {
+    if (!els.syncToggle) return;
+    els.syncToggle.checked = syncEnabled;
+    els.syncStatus.textContent = syncEnabled
+      ? "On — Chrome carries saved words to your other signed-in Chromes when browser sync is enabled."
+      : "Off — saved words stay in this browser profile.";
   }
 
   // ---------- inline feedback ----------
@@ -219,6 +218,23 @@ export function initDictionaryPage({ els, store }) {
   els.importFile.addEventListener("change", importSelected);
   els.exportBtn.addEventListener("click", exportDictionary);
   els.clearBtn.addEventListener("click", clearAll);
+  els.syncToggle?.addEventListener("change", async () => {
+    const wanted = els.syncToggle.checked;
+    els.syncToggle.disabled = true;
+    els.syncStatus.textContent = wanted ? "Turning Chrome sync on…" : "Keeping words on this browser…";
+    try {
+      words = await store.setDictionarySyncEnabled(wanted);
+      syncEnabled = wanted;
+      drawSyncSetting();
+      draw();
+    } catch (e) {
+      els.syncToggle.checked = syncEnabled;
+      drawSyncSetting();
+      transferReport(`Couldn't change dictionary sync: ${e.message || e}`, true);
+    } finally {
+      els.syncToggle.disabled = false;
+    }
+  });
 
   // Live: edits from the side panel, the in-page popup, or another device via
   // sync re-render while the page is open. (Our own writes also round-trip
@@ -227,10 +243,21 @@ export function initDictionaryPage({ els, store }) {
     words = list;
     draw();
   });
+  store.onDictionarySettingsChanged?.((settings) => {
+    syncEnabled = settings.syncEnabled;
+    drawSyncSetting();
+    drawMeter();
+  });
 
   draw(); // empty-state + meter while the initial load is in flight
-  const ready = store.loadDictionary().then((list) => {
+  drawSyncSetting();
+  const ready = Promise.all([
+    store.loadDictionary(),
+    store.loadDictionarySettings?.() ?? { syncEnabled: true },
+  ]).then(([list, settings]) => {
     words = list;
+    syncEnabled = settings.syncEnabled;
+    drawSyncSetting();
     draw();
   });
 

@@ -24,6 +24,8 @@ function makeStubStore(initial = []) {
   let failNextWrite = null;
   const changeCallbacks = [];
   const writes = [];
+  let syncEnabled = true;
+  const settingsCallbacks = [];
 
   const write = async (next) => {
     if (failNextWrite) {
@@ -38,11 +40,21 @@ function makeStubStore(initial = []) {
 
   return {
     loadDictionary: vi.fn(async () => [...list]),
+    loadDictionarySettings: vi.fn(async () => ({ syncEnabled })),
     addWords: vi.fn(async (words) => write(sort([...list, ...words]))),
     removeWord: vi.fn(async (word) => write(list.filter((w) => w !== word))),
     clearDictionary: vi.fn(async () => write([])),
     onDictionaryChanged: vi.fn((cb) => {
       changeCallbacks.push(cb);
+      return () => {};
+    }),
+    setDictionarySyncEnabled: vi.fn(async (enabled) => {
+      syncEnabled = enabled;
+      for (const cb of settingsCallbacks) cb({ syncEnabled });
+      return [...list];
+    }),
+    onDictionarySettingsChanged: vi.fn((cb) => {
+      settingsCallbacks.push(cb);
       return () => {};
     }),
     // test seams
@@ -72,6 +84,8 @@ async function loadDictionaryPage(initial = []) {
       exportBtn: $("exportDictBtn"),
       transferStatus: $("dictTransferStatus"),
       clearBtn: $("clearBtn"),
+      syncToggle: $("dictSyncEnabled"),
+      syncStatus: $("dictSyncStatus"),
     },
     store,
   });
@@ -93,7 +107,7 @@ describe("rendering", () => {
     await loadDictionaryPage(["zebra", "Acme", "alpha"]);
     expect(listedWords()).toEqual(["Acme", "alpha", "zebra"]);
     expect($("dictEmpty").hidden).toBe(true);
-    expect($("quotaMeter").textContent).toMatch(/^3 words · ~0\.\d KB of 8 KB sync quota$/);
+    expect($("quotaMeter").textContent).toBe("3 words · Chrome sync on");
     expect($("clearBtn").disabled).toBe(false);
     expect($("exportDictBtn").disabled).toBe(false);
   });
@@ -106,6 +120,36 @@ describe("rendering", () => {
     expect($("quotaMeter").textContent).toMatch(/^0 words/);
     expect($("clearBtn").disabled).toBe(true);
     expect($("exportDictBtn").disabled).toBe(true);
+  });
+});
+
+describe("Chrome dictionary sync setting", () => {
+  it("is on by default and can switch to browser-only storage", async () => {
+    const store = await loadDictionaryPage(["Proofly"]);
+    expect($("dictSyncEnabled").checked).toBe(true);
+    expect($("dictSyncStatus").textContent).toContain("other signed-in Chromes");
+
+    $("dictSyncEnabled").checked = false;
+    $("dictSyncEnabled").dispatchEvent(new Event("change", { bubbles: true }));
+    await settle();
+
+    expect(store.setDictionarySyncEnabled).toHaveBeenCalledWith(false);
+    expect($("dictSyncEnabled").checked).toBe(false);
+    expect($("dictSyncStatus").textContent).toContain("this browser profile");
+    expect($("quotaMeter").textContent).toBe("1 word · This browser only");
+  });
+
+  it("reverts the switch and reports an error when the storage change fails", async () => {
+    const store = await loadDictionaryPage(["Proofly"]);
+    store.setDictionarySyncEnabled.mockRejectedValueOnce(new Error("storage unavailable"));
+
+    $("dictSyncEnabled").checked = false;
+    $("dictSyncEnabled").dispatchEvent(new Event("change", { bubbles: true }));
+    await settle();
+
+    expect($("dictSyncEnabled").checked).toBe(true);
+    expect($("dictTransferStatus").textContent).toContain("storage unavailable");
+    expect($("dictTransferStatus").classList.contains("error")).toBe(true);
   });
 });
 

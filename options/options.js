@@ -3,7 +3,8 @@
 // ui/library.js); this just binds the real DOM and the real store.
 
 import {
-  addWords, clearDictionary, loadDictionary, onDictionaryChanged, removeWord,
+  addWords, clearDictionary, loadDictionary, loadDictionarySettings, onDictionaryChanged,
+  onDictionarySettingsChanged, removeWord, setDictionarySyncEnabled,
 } from "../lib/dictionary-store.js";
 import { GitHubContentClient, discoverTokenRepos } from "../lib/github-content.js";
 import {
@@ -39,8 +40,13 @@ initDictionaryPage({
     exportBtn: $("exportDictBtn"),
     transferStatus: $("dictTransferStatus"),
     clearBtn: $("clearBtn"),
+    syncToggle: $("dictSyncEnabled"),
+    syncStatus: $("dictSyncStatus"),
   },
-  store: { loadDictionary, addWords, removeWord, clearDictionary, onDictionaryChanged },
+  store: {
+    loadDictionary, loadDictionarySettings, addWords, removeWord, clearDictionary,
+    setDictionarySyncEnabled, onDictionaryChanged, onDictionarySettingsChanged,
+  },
 });
 
 initWeirpackPage({

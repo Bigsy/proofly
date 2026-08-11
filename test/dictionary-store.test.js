@@ -5,8 +5,10 @@
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
-  addWord, addWords, clearDictionary, DICTIONARY_KEY, loadDictionary,
-  onDictionaryChanged, removeWord, removeWords,
+  addWord, addWords, clearDictionary, DICTIONARY_ACTOR_KEY, DICTIONARY_KEY,
+  DICTIONARY_RECORD_PREFIX, DICTIONARY_SETTINGS_KEY, LOCAL_DICTIONARY_KEY,
+  loadDictionary, mergeSyncedDictionary, onDictionaryChanged, removeWord, removeWords,
+  setDictionarySyncEnabledDirect,
 } from "../lib/dictionary-store.js";
 import { installChromeStorageStub } from "./helpers/chrome-storage.js";
 
@@ -17,9 +19,50 @@ afterEach(() => {
 const sync = () => globalThis.chrome.storage.sync;
 
 async function storedWords() {
-  const data = await sync().get(DICTIONARY_KEY);
-  return data?.[DICTIONARY_KEY];
+  return loadDictionary();
 }
+
+describe("conflict-resistant merge", () => {
+  it("keeps concurrent additions written by different browser actors", () => {
+    const merged = mergeSyncedDictionary({
+      [DICTIONARY_KEY]: ["legacy"],
+      [`${DICTIONARY_RECORD_PREFIX}browser-a:1`]: { v: 2, entries: [["alpha", 1, []]] },
+      [`${DICTIONARY_RECORD_PREFIX}browser-b:2`]: { v: 2, entries: [["beta", 1, []]] },
+    });
+    expect(merged.words).toEqual(["alpha", "beta", "legacy"]);
+  });
+
+  it("preserves an unseen concurrent re-add but honours a remove that observed it", () => {
+    expect(mergeSyncedDictionary({
+      [`${DICTIONARY_RECORD_PREFIX}browser-a:1`]: {
+        v: 2, entries: [["Proofly", null, ["browser-b/4"]]],
+      },
+      [`${DICTIONARY_RECORD_PREFIX}browser-b:1`]: { v: 2, entries: [["Proofly", 5, []]] },
+    }).words).toEqual(["Proofly"]);
+
+    expect(mergeSyncedDictionary({
+      [`${DICTIONARY_RECORD_PREFIX}browser-a:1`]: {
+        v: 2, entries: [["Proofly", null, ["browser-b/5"]]],
+      },
+      [`${DICTIONARY_RECORD_PREFIX}browser-b:1`]: { v: 2, entries: [["Proofly", 5, []]] },
+    }).words).toEqual([]);
+  });
+
+  it("clear removes every observed add while preserving an unseen concurrent add", () => {
+    expect(mergeSyncedDictionary({
+      [DICTIONARY_KEY]: ["legacy"],
+      [`${DICTIONARY_RECORD_PREFIX}browser-a:1`]: {
+        v: 2, entries: [
+          ["legacy", null, ["v1"]],
+          ["old", null, ["browser-b/2"]],
+        ],
+      },
+      [`${DICTIONARY_RECORD_PREFIX}browser-b:1`]: {
+        v: 2, entries: [["old", 2, []], ["concurrent", 3, []]],
+      },
+    }).words).toEqual(["concurrent"]);
+  });
+});
 
 describe("loadDictionary — defensive reads", () => {
   it("cleans garbage from storage into a valid word list", async () => {
@@ -57,6 +100,8 @@ describe("writes", () => {
     expect(result).toEqual(["Acme", "alpha", "beta", "zebra"]);
     expect(await storedWords()).toEqual(["Acme", "alpha", "beta", "zebra"]);
     expect(sync().set).toHaveBeenCalledTimes(1);
+    expect(Object.keys(await sync().get(null)).some((key) => key.startsWith(DICTIONARY_RECORD_PREFIX)))
+      .toBe(true);
   });
 
   it("addWord adds a single word and returns the resulting list", async () => {
@@ -101,7 +146,7 @@ describe("onDictionaryChanged", () => {
     // options page, the other surface. Garbage rides along to prove the
     // callback re-reads defensively.
     await sync().set({ [DICTIONARY_KEY]: ["zebra", 42, "alpha"] });
-    expect(cb).toHaveBeenCalledTimes(1);
+    await vi.waitFor(() => expect(cb).toHaveBeenCalledTimes(1));
     expect(cb).toHaveBeenCalledWith(["alpha", "zebra"]);
   });
 
@@ -131,5 +176,35 @@ describe("onDictionaryChanged", () => {
     const unsubscribe = onDictionaryChanged(vi.fn());
     expect(unsubscribe).not.toThrow;
     unsubscribe();
+  });
+});
+
+describe("per-browser sync setting", () => {
+  it("defaults on, copies words locally when disabled, and keeps local edits off sync", async () => {
+    installChromeStorageStub({ [DICTIONARY_KEY]: ["Proofly"] });
+
+    await expect(setDictionarySyncEnabledDirect(false)).resolves.toEqual(["Proofly"]);
+    const settingsData = await globalThis.chrome.storage.local.get(DICTIONARY_SETTINGS_KEY);
+    const localData = await globalThis.chrome.storage.local.get(LOCAL_DICTIONARY_KEY);
+    expect(settingsData[DICTIONARY_SETTINGS_KEY]).toEqual({ syncEnabled: false });
+    expect(localData[LOCAL_DICTIONARY_KEY]).toEqual(["Proofly"]);
+
+    await addWord("localword");
+    expect(await loadDictionary()).toEqual(["localword", "Proofly"]);
+    expect(await sync().get(DICTIONARY_KEY)).toEqual({ [DICTIONARY_KEY]: ["Proofly"] });
+  });
+
+  it("re-enabling merges local words with words learned by Chrome sync", async () => {
+    installChromeStorageStub(
+      { [DICTIONARY_KEY]: ["remote"] },
+      {
+        [DICTIONARY_SETTINGS_KEY]: { syncEnabled: false },
+        [LOCAL_DICTIONARY_KEY]: ["local"],
+        [DICTIONARY_ACTOR_KEY]: "browser-a",
+      },
+    );
+
+    await expect(setDictionarySyncEnabledDirect(true)).resolves.toEqual(["local", "remote"]);
+    expect(await loadDictionary()).toEqual(["local", "remote"]);
   });
 });

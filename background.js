@@ -12,7 +12,9 @@
 // silently broken (the popup labels it "enabled on another device").
 
 import { asSiteMap, originPattern, patternLabel, SITES_KEY } from "./lib/sites.js";
-import { asWordList, DICTIONARY_KEY } from "./lib/dictionary-store.js";
+import {
+  isDictionaryStorageChange, loadDictionary, setDictionarySyncEnabledDirect, updateDictionary,
+} from "./lib/dictionary-store.js";
 import {
   parseProofingSettings, PROOFING_SETTINGS_KEY, resolveDialect,
 } from "./lib/proofing-settings.js";
@@ -26,13 +28,14 @@ import {
   isWeirpackStorageChange, loadWeirpacks,
 } from "./lib/weirpack-store.js";
 import {
-  PAGE_ADAPTER_FLAGS_CHANGED, PAGE_DICTIONARY_CHANGED, PAGE_DICTIONARY_UPDATE,
+  DICTIONARY_SYNC_SET, PAGE_ADAPTER_FLAGS_CHANGED, PAGE_DICTIONARY_CHANGED, PAGE_DICTIONARY_UPDATE,
   PAGE_PROOFING_SETTINGS_CHANGED, PAGE_STORAGE_GET,
 } from "./lib/storage-broker.js";
 
 const HARPER_OFFSCREEN_URL = "offscreen.html";
 let harperCreationPromise = null;
 let harperOperationTail = Promise.resolve();
+let dictionaryMutationTail = Promise.resolve();
 
 // Notes and the optional GitHub token live in extension storage. Chrome makes
 // local/sync storage available to content scripts by default, so lock both
@@ -80,7 +83,9 @@ async function hasHarperOffscreen() {
 }
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  if (message?.type === PAGE_STORAGE_GET || message?.type === PAGE_DICTIONARY_UPDATE) {
+  if (message?.type === PAGE_STORAGE_GET
+    || message?.type === PAGE_DICTIONARY_UPDATE
+    || message?.type === DICTIONARY_SYNC_SET) {
     handlePageStorageRequest(message)
       .then(sendResponse)
       .catch((error) => sendResponse({ ok: false, error: String(error?.message || error) }));
@@ -101,12 +106,13 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
 export async function pageStorageSnapshot() {
   await storageAccessReady;
-  const [syncData, localData] = await Promise.all([
-    chrome.storage.sync.get([DICTIONARY_KEY, PROOFING_SETTINGS_KEY]),
+  const [dictionary, syncData, localData] = await Promise.all([
+    loadDictionary(),
+    chrome.storage.sync.get(PROOFING_SETTINGS_KEY),
     chrome.storage.local.get(EDITOR_ADAPTER_FLAGS_KEY),
   ]);
   return {
-    dictionary: asWordList(syncData?.[DICTIONARY_KEY]),
+    dictionary,
     proofingSettings: parseProofingSettings(syncData?.[PROOFING_SETTINGS_KEY]),
     editorAdapterFlags: normalizeEditorAdapterFlags(
       localData?.[EDITOR_ADAPTER_FLAGS_KEY] ?? DEFAULT_EDITOR_ADAPTER_FLAGS,
@@ -118,36 +124,33 @@ export async function handlePageStorageRequest(message) {
   if (message?.type === PAGE_STORAGE_GET) {
     return { ok: true, ...await pageStorageSnapshot() };
   }
-  if (message?.type !== PAGE_DICTIONARY_UPDATE) {
+  if (message?.type !== PAGE_DICTIONARY_UPDATE && message?.type !== DICTIONARY_SYNC_SET) {
     throw new Error("Unknown page storage request");
   }
 
   await storageAccessReady;
-  const data = await chrome.storage.sync.get(DICTIONARY_KEY);
-  const current = asWordList(data?.[DICTIONARY_KEY]);
-  const requested = asWordList(message.words);
-  let dictionary;
-  if (message.operation === "add") {
-    dictionary = asWordList([...current, ...requested]);
-  } else if (message.operation === "remove") {
-    const drop = new Set(requested);
-    dictionary = current.filter((word) => !drop.has(word));
-  } else if (message.operation === "clear") {
-    dictionary = [];
-  } else {
-    throw new Error("Unknown dictionary operation");
-  }
-  await chrome.storage.sync.set({ [DICTIONARY_KEY]: dictionary });
-  return { ok: true, dictionary };
+  const operation = async () => {
+    if (message.type === DICTIONARY_SYNC_SET) {
+      return setDictionarySyncEnabledDirect(message.enabled !== false);
+    }
+    if (!["add", "remove", "clear"].includes(message.operation)) {
+      throw new Error("Unknown dictionary operation");
+    }
+    return updateDictionary(message.operation, message.words);
+  };
+  const dictionary = dictionaryMutationTail.then(operation, operation);
+  dictionaryMutationTail = dictionary.catch(() => {});
+  const result = await dictionary;
+  return { ok: true, dictionary: result };
 }
 
 async function storedHarperConfiguration() {
   await storageAccessReady;
-  const [data, storedWeirpacks] = await Promise.all([
-    chrome.storage.sync.get([PROOFING_SETTINGS_KEY, DICTIONARY_KEY]),
+  const [words, data, storedWeirpacks] = await Promise.all([
+    loadDictionary(),
+    chrome.storage.sync.get(PROOFING_SETTINGS_KEY),
     loadWeirpacks(),
   ]);
-  const words = asWordList(data?.[DICTIONARY_KEY]);
   const settings = parseProofingSettings(data?.[PROOFING_SETTINGS_KEY]);
   const config = {
     dialect: resolveDialect(settings, chrome.i18n.getUILanguage()),
@@ -487,6 +490,17 @@ chrome.storage.onChanged.addListener(async (changes, area) => {
         ),
       });
     }
+    if (isDictionaryStorageChange(changes, area)) {
+      await broadcastPageStorage({
+        type: PAGE_DICTIONARY_CHANGED,
+        dictionary: await loadDictionary(),
+      });
+      if (await hasHarperOffscreen()) {
+        await configureHarperFromStorage().catch((error) => {
+          console.warn("Harper storage reconfiguration failed:", error);
+        });
+      }
+    }
     return;
   }
   if (area !== "sync") return;
@@ -505,10 +519,11 @@ chrome.storage.onChanged.addListener(async (changes, area) => {
     await broadcastTeardown(dropped);
     await refreshAllTabIcons();
   }
-  if (changes[DICTIONARY_KEY]) {
+  const dictionaryChanged = isDictionaryStorageChange(changes, area);
+  if (dictionaryChanged) {
     await broadcastPageStorage({
       type: PAGE_DICTIONARY_CHANGED,
-      dictionary: asWordList(changes[DICTIONARY_KEY].newValue),
+      dictionary: await loadDictionary(),
     });
   }
   if (changes[PROOFING_SETTINGS_KEY]) {
@@ -517,7 +532,7 @@ chrome.storage.onChanged.addListener(async (changes, area) => {
       proofingSettings: parseProofingSettings(changes[PROOFING_SETTINGS_KEY].newValue),
     });
   }
-  if ((changes[DICTIONARY_KEY] || changes[PROOFING_SETTINGS_KEY] || isWeirpackStorageChange(changes))
+  if ((dictionaryChanged || changes[PROOFING_SETTINGS_KEY] || isWeirpackStorageChange(changes))
     && await hasHarperOffscreen()) {
     await configureHarperFromStorage().catch((error) => {
       console.warn("Harper storage reconfiguration failed:", error);

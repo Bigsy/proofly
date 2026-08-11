@@ -92,10 +92,11 @@ is enabled.
   opted-in pages — and every correction card offers **Add to dictionary** for
   single-word spelling complaints; one click suppresses *every* instance of
   the word, instantly, without re-proofreading. Bulk management (search, add
-  one, paste many, import/export text files, remove, clear all, a sync-quota meter) lives on the
+  one, paste many, import/export text files, remove, clear all, and sync status) lives on the
   **options page** — *Manage dictionary…* in the toolbar menu or the side
-  panel's Options. The list lives in `chrome.storage.sync`, so it follows you
-  across signed-in Chromes; see
+  panel's Options. Chrome sync is on by default, so saved words follow you
+  across signed-in Chromes without setup; it can be switched off for a
+  browser-only dictionary. See
   [Custom dictionary](#custom-dictionary) below for matching rules and limits.
 
 ## Requirements
@@ -193,12 +194,19 @@ Matching rules:
   capitalization (so it still works at sentence start); an entry with capitals
   (`Acme`) matches exactly.
 
-Storage & limits: the whole list is one `chrome.storage.sync` item
-(`customDictionary`), which Chrome caps at **~8 KB ≈ 1000+ words** — the
-options page shows a usage meter, and a write past the quota fails loudly
-(nothing is truncated). Sync conflicts are last-write-wins on the whole list:
-two devices adding words in the same sync window can lose one (rare;
-self-healing — just add it again).
+Storage & sync: saved words use Chrome sync by default, with no Proofly account
+or GitHub setup. Proofly keeps browser-specific, sharded change records rather
+than repeatedly replacing one shared array. Concurrent additions on different
+browsers therefore merge, removals are explicit, and a concurrent add/remove
+keeps the word rather than losing it silently. Existing `customDictionary`
+arrays remain as a read-only migration base, so upgrading does not discard
+words. The options-page switch can instead keep the dictionary in
+`chrome.storage.local` for that browser profile; turning sync back on merges
+those local words with the synced list.
+
+Chrome still applies its extension-sync quotas (about 100 KB total, 8 KB per
+item, and 512 items). Proofly shards records across items and surfaces a quota
+failure loudly; it never truncates a dictionary.
 
 The options page can export the sorted dictionary as
 `proofly-dictionary.txt`, with one word per line. Importing the same simple

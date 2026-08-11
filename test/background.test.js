@@ -7,10 +7,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ALL_SITES_PATTERN, SITES_KEY } from "../lib/sites.js";
 import {
-  PAGE_ADAPTER_FLAGS_CHANGED, PAGE_DICTIONARY_CHANGED, PAGE_DICTIONARY_UPDATE,
+  DICTIONARY_SYNC_SET, PAGE_ADAPTER_FLAGS_CHANGED, PAGE_DICTIONARY_CHANGED, PAGE_DICTIONARY_UPDATE,
   PAGE_PROOFING_SETTINGS_CHANGED, PAGE_STORAGE_GET,
 } from "../lib/storage-broker.js";
 import { EDITOR_ADAPTER_FLAGS_KEY } from "../page/content/adapter-flags.js";
+import {
+  DICTIONARY_SETTINGS_KEY, LOCAL_DICTIONARY_KEY, loadDictionary,
+} from "../lib/dictionary-store.js";
 import {
   WEIRPACK_INDEX_KEY, WEIRPACK_KEY_PREFIX,
 } from "../lib/weirpack-store.js";
@@ -67,12 +70,45 @@ describe("trusted storage boundary", () => {
       operation: "add",
       words: ["  Acme ", "two words", 42],
     })).resolves.toEqual({ ok: true, dictionary: ["Acme", "Proofly"] });
+    expect(await loadDictionary()).toEqual(["Acme", "Proofly"]);
     expect(await stub.chrome.storage.sync.get("customDictionary"))
-      .toEqual({ customDictionary: ["Acme", "Proofly"] });
+      .toEqual({ customDictionary: ["Proofly"] }); // untouched migration base
 
     await expect(handlePageStorageRequest({
       type: PAGE_DICTIONARY_UPDATE, operation: "replace", words: ["bad"],
     })).rejects.toThrow(/Unknown dictionary operation/);
+  });
+
+  it("serializes simultaneous local additions before writing one browser actor", async () => {
+    const stub = makeChromeWorkerStub();
+    const { handlePageStorageRequest } = await loadBackgroundWorker(stub);
+
+    await Promise.all([
+      handlePageStorageRequest({
+        type: PAGE_DICTIONARY_UPDATE, operation: "add", words: ["alpha"],
+      }),
+      handlePageStorageRequest({
+        type: PAGE_DICTIONARY_UPDATE, operation: "add", words: ["beta"],
+      }),
+    ]);
+
+    expect(await loadDictionary()).toEqual(["alpha", "beta"]);
+  });
+
+  it("switches to a copied browser-only dictionary through the trusted broker", async () => {
+    const stub = makeChromeWorkerStub({ sync: { customDictionary: ["Proofly"] } });
+    const { handlePageStorageRequest } = await loadBackgroundWorker(stub);
+
+    await expect(handlePageStorageRequest({
+      type: DICTIONARY_SYNC_SET, enabled: false,
+    })).resolves.toEqual({ ok: true, dictionary: ["Proofly"] });
+    const local = await stub.chrome.storage.local.get([
+      DICTIONARY_SETTINGS_KEY, LOCAL_DICTIONARY_KEY,
+    ]);
+    expect(local).toEqual({
+      [DICTIONARY_SETTINGS_KEY]: { syncEnabled: false },
+      [LOCAL_DICTIONARY_KEY]: ["Proofly"],
+    });
   });
 
   it("broadcasts only sanitized changes needed by live content scripts", async () => {
@@ -86,26 +122,30 @@ describe("trusted storage boundary", () => {
     });
     await settle();
 
-    expect(stub.sentMessages).toEqual([
-      {
-        tabId: 7,
-        message: { type: PAGE_DICTIONARY_CHANGED, dictionary: ["Proofly"] },
+    expect(stub.sentMessages).toHaveLength(3);
+    const byType = Object.fromEntries(stub.sentMessages.map(({ tabId, message }) => [
+      message.type, { tabId, message },
+    ]));
+    expect(byType[PAGE_DICTIONARY_CHANGED]).toEqual({
+      tabId: 7,
+      message: { type: PAGE_DICTIONARY_CHANGED, dictionary: ["Proofly"] },
+    });
+    expect(byType[PAGE_PROOFING_SETTINGS_CHANGED]).toEqual({
+      tabId: 7,
+      message: {
+        type: PAGE_PROOFING_SETTINGS_CHANGED,
+        proofingSettings: { dialect: "canadian" },
       },
-      {
-        tabId: 7,
-        message: {
-          type: PAGE_PROOFING_SETTINGS_CHANGED,
-          proofingSettings: { dialect: "canadian" },
-        },
+    });
+    expect(byType[PAGE_ADAPTER_FLAGS_CHANGED]).toEqual({
+      tabId: 7,
+      message: {
+        type: PAGE_ADAPTER_FLAGS_CHANGED,
+        editorAdapterFlags: expect.objectContaining({
+          adapters: expect.objectContaining({ quill: false }),
+        }),
       },
-      {
-        tabId: 7,
-        message: {
-          type: PAGE_ADAPTER_FLAGS_CHANGED,
-          editorAdapterFlags: expect.objectContaining({ adapters: expect.objectContaining({ quill: false }) }),
-        },
-      },
-    ]);
+    });
   });
 });
 

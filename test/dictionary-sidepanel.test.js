@@ -5,6 +5,7 @@
 // suppressed words intact, and live re-filtering on external sync changes.
 
 import { describe, expect, it } from "vitest";
+import { loadDictionary } from "../lib/dictionary-store.js";
 import { createMockProofreader } from "./helpers/mock-proofreader.js";
 import {
   $, clickEditorAt, correctionCards, loadPage, settle, squiggles, tick,
@@ -76,7 +77,7 @@ describe("adding a word", () => {
     expect(squiggles().map((s) => s.textContent)).toEqual(["seen"]);
     expect(correctionCards()).toHaveLength(1);
     expect($("summary").textContent).toBe("1 correction suggested.");
-    expect((await sync().get("customDictionary")).customDictionary).toEqual(["loafs"]);
+    expect(await loadDictionary()).toEqual(["loafs"]);
 
     // The whole point: a Set lookup, not a model call. Let the debounce window
     // pass too — nothing may have scheduled a proofread.
@@ -116,7 +117,7 @@ describe("adding a word", () => {
     dictBtns[1].click();
     await settle();
     expect(squiggles().map((s) => s.textContent)).toEqual(["seen"]);
-    expect((await sync().get("customDictionary")).customDictionary).toEqual(["loafs"]);
+    expect(await loadDictionary()).toEqual(["loafs"]);
     expect(mock.ledger.instances).toHaveLength(1);
   });
 

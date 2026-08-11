@@ -132,9 +132,21 @@
           <h2>Dictionary</h2>
           <p class="muted">
             Words Proofly should stop flagging — names, jargon, product terms.
-            Synced across your Chromes. A lowercase entry matches any
-            capitalization; an entry with capitals must match exactly.
+            A lowercase entry matches any capitalization; an entry with
+            capitals must match exactly.
           </p>
+        </div>
+
+        <div class="card">
+          <label class="toggle-setting" for="dictSyncEnabled">
+            <span class="toggle-setting__copy">
+              <strong>Sync saved words with Chrome</strong>
+              <span id="dictSyncStatus" class="muted">
+                On by default — uses Chrome sync automatically when browser sync is enabled.
+              </span>
+            </span>
+            <input id="dictSyncEnabled" type="checkbox" role="switch" checked />
+          </label>
         </div>
 
         <div class="card">

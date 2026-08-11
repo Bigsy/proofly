@@ -6,6 +6,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { EDITOR_ADAPTER_FLAGS_KEY } from "../page/content/adapter-flags.js";
 import { MAX_EDITOR_CODE_UNITS } from "../page/content/constants.js";
+import { loadDictionary } from "../lib/dictionary-store.js";
 import { createMockProofreader } from "./helpers/mock-proofreader.js";
 import {
   blurField, clickFieldAt, compositionEnd, compositionStart, field, focusField, host,
@@ -1224,8 +1225,7 @@ describe("custom dictionary (in-page)", () => {
     expect(pagePopup().hidden).toBe(true);
     expect(squiggleBoxes()).toHaveLength(0);
     expect(field().value).toBe(TYPO); // text untouched — suppressed, not fixed
-    const stored = await globalThis.chrome.storage.sync.get("customDictionary");
-    expect(stored.customDictionary).toEqual(["teh"]);
+    expect(await loadDictionary()).toEqual(["teh"]);
     expect(mock.ledger.instances).toHaveLength(1); // a Set lookup, not a model call
   });
 
