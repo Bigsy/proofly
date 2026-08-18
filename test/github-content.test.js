@@ -74,6 +74,23 @@ describe("GitHubContentClient", () => {
     expect(body).toMatchObject({ branch: "main", sha: "old-sha", content: b64("hello") });
   });
 
+  it("round-trips binary content without UTF-8 conversion", async () => {
+    const bytes = Uint8Array.from([0, 255, 128, 1]);
+    const encoded = btoa(String.fromCharCode(...bytes));
+    const fetchImpl = vi.fn()
+      .mockResolvedValueOnce(jsonResponse({ type: "file", sha: "binary-sha", content: encoded }))
+      .mockResolvedValueOnce(jsonResponse({ content: { sha: "new-binary-sha" } }));
+    const client = new GitHubContentClient({ owner: "me", repo: "notes", token: "tok", fetchImpl });
+
+    await expect(client.getFileBytes("weirpacks/a.weirpack")).resolves.toMatchObject({
+      sha: "binary-sha", bytes,
+    });
+    await expect(client.putFileBytes("weirpacks/a.weirpack", bytes)).resolves.toMatchObject({
+      sha: "new-binary-sha",
+    });
+    expect(JSON.parse(fetchImpl.mock.calls[1][1].body).content).toBe(encoded);
+  });
+
   it("marks 409/422 responses as retryable conflicts", async () => {
     const fetchImpl = vi.fn(async () => jsonResponse({ message: "sha mismatch" }, { status: 409 }));
     const client = new GitHubContentClient({ owner: "me", repo: "notes", token: "tok", fetchImpl });

@@ -28,9 +28,11 @@ function friendlyError(e) {
   return `Sync setup failed: ${e?.message || e}`;
 }
 
-const isWriteConflict = (value) => value?.status === 409
+const isWriteConflict = (value) => value?.scope !== "weirpacks" && (
+  value?.status === 409
   || value?.status === 422
-  || /does not match|sha mismatch/i.test(value?.message ?? "");
+  || /does not match|sha mismatch/i.test(value?.message ?? "")
+);
 
 const plural = (count, noun = "note") => `${count} ${noun}${count === 1 ? "" : "s"}`;
 
@@ -84,7 +86,9 @@ export function initSyncPage({
     const when = new Date(diagnostic.at).toLocaleString();
     const reason = isWriteConflict(diagnostic)
       ? "Sync couldn’t finish because the GitHub library changed at the same time. Your notes have been kept safe."
-      : friendlyError(diagnostic);
+      : diagnostic.scope === "weirpacks"
+        ? `Weirpack sync failed: ${diagnostic.message}`
+        : friendlyError(diagnostic);
     const message = `Last sync attempt failed ${when}: ${reason}`;
     if (els.diagnosticMessage) {
       els.diagnosticMessage.textContent = message;

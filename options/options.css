@@ -417,6 +417,11 @@ textarea { display: block; width: 100%; }
 }
 
 /* ---------- Harper Weirpacks ---------- */
+.weirpack-sync-setting {
+  margin: 0 0 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
 .weirpack-empty { margin-top: 12px; }
 .weirpack-list {
   list-style: none;

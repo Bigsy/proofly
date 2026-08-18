@@ -7,8 +7,9 @@ import {
   onDictionarySettingsChanged, removeWord, setDictionarySyncEnabled,
 } from "../lib/dictionary-store.js";
 import { GitHubContentClient, discoverTokenRepos } from "../lib/github-content.js";
+import { runSync } from "../lib/full-sync.js";
 import {
-  inspectSyncRecovery, loadRecoveryBackup, recoverNotesSync, runSync,
+  inspectSyncRecovery, loadRecoveryBackup, recoverNotesSync,
 } from "../lib/notes-sync.js";
 import {
   clearSyncDiagnostic, loadSyncDiagnostic, recordSyncError,
@@ -19,8 +20,14 @@ import {
 import { initDictionaryPage } from "../ui/dictionary-page.js";
 import { initSyncPage } from "../ui/sync-page.js";
 import {
-  loadWeirpackIndex, onWeirpacksChanged, removeWeirpack, saveWeirpack,
+  loadWeirpackIndex, maxWeirpackFileBytes, onWeirpacksChanged, removeWeirpack, saveWeirpack,
 } from "../lib/weirpack-store.js";
+import {
+  disableGitHubWeirpackSync, enableGitHubWeirpackSync, runWeirpackSync,
+} from "../lib/weirpack-sync.js";
+import {
+  loadWeirpackSyncSettings, onWeirpackSyncSettingsChanged,
+} from "../lib/weirpack-sync-settings.js";
 import { validateWeirpack } from "../lib/weirpack-validator.js";
 import { initWeirpackPage } from "../ui/weirpack-page.js";
 
@@ -56,9 +63,20 @@ initWeirpackPage({
     status: $("weirpackStatus"),
     list: $("weirpackList"),
     empty: $("weirpackEmpty"),
+    syncWrap: $("weirpackSyncWrap"),
+    syncToggle: $("weirpackSyncEnabled"),
+    syncStatus: $("weirpackSyncStatus"),
   },
   store: {
     loadWeirpackIndex, saveWeirpack, removeWeirpack, onWeirpacksChanged,
+    maxWeirpackFileBytes,
+  },
+  githubSettingsStore: { loadSyncSettings, onSyncSettingsChanged },
+  syncModeStore: { loadWeirpackSyncSettings, onWeirpackSyncSettingsChanged },
+  syncActions: {
+    enable: enableGitHubWeirpackSync,
+    disable: disableGitHubWeirpackSync,
+    sync: runWeirpackSync,
   },
   validate: validateWeirpack,
 });

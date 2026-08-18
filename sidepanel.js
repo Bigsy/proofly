@@ -13,7 +13,8 @@ import {
   loadProofingSettings, onProofingSettingsChanged, saveProofingSettings,
 } from "./lib/proofing-settings-store.js";
 import { deleteNote, getNote, listIndex, newId, saveNote } from "./lib/notes-store.js";
-import { recordTombstone, runSync } from "./lib/notes-sync.js";
+import { runSync } from "./lib/full-sync.js";
+import { recordTombstone } from "./lib/notes-sync.js";
 import { createHarperCoordinator } from "./lib/harper-coordinator.js";
 import { clearSyncDiagnostic, recordSyncError } from "./lib/sync-diagnostics.js";
 import { createSupersedeSlot } from "./lib/supersede.js";

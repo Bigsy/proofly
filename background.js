@@ -27,6 +27,7 @@ import {
 import {
   isWeirpackStorageChange, loadWeirpacks,
 } from "./lib/weirpack-store.js";
+import { WEIRPACK_SYNC_SETTINGS_KEY } from "./lib/weirpack-sync-settings.js";
 import {
   DICTIONARY_SYNC_SET, PAGE_ADAPTER_FLAGS_CHANGED, PAGE_DICTIONARY_CHANGED, PAGE_DICTIONARY_UPDATE,
   PAGE_PROOFING_SETTINGS_CHANGED, PAGE_STORAGE_GET,
@@ -501,6 +502,11 @@ chrome.storage.onChanged.addListener(async (changes, area) => {
         });
       }
     }
+    if (isWeirpackStorageChange(changes) && await hasHarperOffscreen()) {
+      await configureHarperFromStorage().catch((error) => {
+        console.warn("Harper Weirpack reconfiguration failed:", error);
+      });
+    }
     return;
   }
   if (area !== "sync") return;
@@ -532,7 +538,8 @@ chrome.storage.onChanged.addListener(async (changes, area) => {
       proofingSettings: parseProofingSettings(changes[PROOFING_SETTINGS_KEY].newValue),
     });
   }
-  if ((dictionaryChanged || changes[PROOFING_SETTINGS_KEY] || isWeirpackStorageChange(changes))
+  if ((dictionaryChanged || changes[PROOFING_SETTINGS_KEY]
+      || changes[WEIRPACK_SYNC_SETTINGS_KEY] || isWeirpackStorageChange(changes))
     && await hasHarperOffscreen()) {
     await configureHarperFromStorage().catch((error) => {
       console.warn("Harper storage reconfiguration failed:", error);

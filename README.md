@@ -222,17 +222,32 @@ pack's embedded tests before saving it, and a rejected pack is never enabled.
 Imported packs are applied to both the notes editor and opted-in website
 fields.
 
-Each pack is stored as its own `chrome.storage.sync` item, with a small synced
-index, so packs follow the user's signed-in Chrome profiles without sharing
-them with Proofly or a Proofly server. The current per-pack file limit is
-5,600 bytes, leaving room for base64 encoding under Chrome's 8 KB per-item
-quota. Pack data stays behind the trusted-extension storage boundary and is
-not exposed to website content scripts.
+By default, each pack is stored as its own `chrome.storage.sync` item with a
+small synced index. The per-pack file limit in this mode is 5,600 bytes,
+leaving room for base64 encoding under Chrome's 8 KB per-item quota.
+
+After GitHub sync is connected, Settings also offers **Sync Weirpacks with
+GitHub**. In that mode the working copy lives in `chrome.storage.local` and
+Proofly syncs exact binary archives through the selected repository:
+
+```text
+weirpacks/index.json
+weirpacks/<content-id>.weirpack
+```
+
+GitHub mode supports packs up to 25 MiB. Enabling it uploads existing
+Chrome-synced packs before removing their old sync items. The remote index
+records removals for 30 days so another computer cannot resurrect a deleted
+pack. Switching back to Chrome sync is blocked while any installed pack is
+larger than Chrome's limit. In both modes pack data stays behind the
+trusted-extension storage boundary and is not exposed to website content
+scripts.
 
 ## Sync between computers (optional)
 
-Notes sync is off by default. When enabled, Proofly stores each note as JSON in
-a private GitHub repository you own:
+GitHub sync is off by default. When enabled, Proofly stores each note as JSON
+in a private GitHub repository you own; Weirpack sync can then be enabled
+separately:
 
 ```text
 index.json

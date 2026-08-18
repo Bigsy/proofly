@@ -17,6 +17,7 @@ import {
 import {
   WEIRPACK_INDEX_KEY, WEIRPACK_KEY_PREFIX,
 } from "../lib/weirpack-store.js";
+import { WEIRPACK_SYNC_SETTINGS_KEY } from "../lib/weirpack-sync-settings.js";
 import { loadBackgroundWorker, makeChromeWorkerStub, settle } from "./helpers/background-worker.js";
 
 const GH = "https://github.com/*";
@@ -283,6 +284,31 @@ describe("Harper offscreen lifecycle", () => {
     const pageSnapshot = await handlePageStorageRequest({ type: PAGE_STORAGE_GET });
     expect(pageSnapshot).not.toHaveProperty("weirpacks");
     expect(JSON.stringify(pageSnapshot)).not.toContain("doccla.weirpack");
+  });
+
+  it("configures Harper from the local working copy in GitHub Weirpack mode", async () => {
+    const id = "0123456789abcdef0123456789abcdef";
+    const bytes = [80, 75, 3, 4, 5];
+    const stub = makeChromeWorkerStub({
+      sync: {
+        [WEIRPACK_SYNC_SETTINGS_KEY]: { githubEnabled: true, hasUsedGitHub: true },
+      },
+      local: {
+        [WEIRPACK_INDEX_KEY]: [{
+          id, name: "large.weirpack", size: bytes.length,
+          author: "", version: "", description: "", updatedAt: 10,
+        }],
+        [`${WEIRPACK_KEY_PREFIX}${id}`]: { data: btoa(String.fromCharCode(...bytes)) },
+      },
+    });
+    const { forwardHarperRequest } = await loadBackgroundWorker(stub);
+
+    await forwardHarperRequest({ type: "harper:lint", requestId: 9, text: "term" });
+
+    expect(stub.runtimeMessages[0]).toMatchObject({
+      type: "harper:configure",
+      weirpacks: [{ id, bytes }],
+    });
   });
 
   it("reconfigures an existing worker on dictionary/settings changes without creating one eagerly", async () => {

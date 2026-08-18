@@ -16,7 +16,7 @@
       <section class="section">
         <div class="section-head">
           <h2>Sync between computers</h2>
-          <p class="muted">Optional GitHub sync for the notes library. Without this, notes stay on this device.</p>
+          <p class="muted">Optional GitHub sync for the notes library and larger Weirpacks. Without this, notes stay on this device.</p>
         </div>
         <div class="card sync-card">
           <!-- Setup-only UI; sync-page.js hides this block once connected. -->
@@ -37,7 +37,8 @@
             </label>
             <p class="privacy-note">
               The token is stored in Chrome sync storage so your signed-in Chromes can reuse it.
-              Proofly sends it only to GitHub for the repository you choose.
+              Proofly sends it only to GitHub for the repository you choose. Weirpacks are included
+              only if you enable their separate toggle below.
             </p>
             <details class="manual-setup">
               <summary>Manual setup</summary>
@@ -106,13 +107,22 @@
         <div class="section-head">
           <h2>Harper Weirpacks</h2>
           <p class="muted">
-            Add custom Harper dictionaries and rules. Small packs are stored
-            in your Chrome profile and synced between your signed-in Chromes.
+            Add custom Harper dictionaries and rules. Small packs can use
+            Chrome sync; larger packs can use your connected GitHub repository.
             You can make your own Weirpacks with
             <a href="https://weirsmith.bigsy.uk/" target="_blank" rel="noreferrer">Weirsmith</a>.
           </p>
         </div>
         <div class="card">
+          <label id="weirpackSyncWrap" class="toggle-setting weirpack-sync-setting" for="weirpackSyncEnabled" hidden>
+            <span class="toggle-setting__copy">
+              <strong>Sync Weirpacks with GitHub</strong>
+              <span id="weirpackSyncStatus" class="muted">
+                Supports larger packs and keeps a local working copy on this browser.
+              </span>
+            </span>
+            <input id="weirpackSyncEnabled" type="checkbox" role="switch" />
+          </label>
           <input id="weirpackFile" type="file" accept=".weirpack,application/zip" hidden />
           <div class="bulk-row bulk-row--topless">
             <button id="importWeirpackBtn" class="btn btn--primary" type="button">

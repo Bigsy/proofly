@@ -5,6 +5,7 @@ const $ = (id) => document.getElementById(id);
 
 function elements() {
   document.body.innerHTML = `
+    <label id="syncWrap" hidden><input id="syncToggle" type="checkbox"><span id="syncStatus"></span></label>
     <input id="file" type="file">
     <button id="import"></button>
     <span id="status"></span>
@@ -13,7 +14,8 @@ function elements() {
   `;
   return {
     file: $("file"), importBtn: $("import"), status: $("status"),
-    empty: $("empty"), list: $("list"),
+    empty: $("empty"), list: $("list"), syncWrap: $("syncWrap"),
+    syncToggle: $("syncToggle"), syncStatus: $("syncStatus"),
   };
 }
 
@@ -87,5 +89,71 @@ describe("Weirpack options page", () => {
     expect(store.saveWeirpack).not.toHaveBeenCalled();
     expect(els.status.textContent).toContain("embedded tests failed");
     expect(els.status.classList.contains("error")).toBe(true);
+  });
+
+  it("shows the GitHub toggle only when connected and enables it through migration", async () => {
+    const els = elements();
+    const store = makeStore();
+    store.maxWeirpackFileBytes = vi.fn(async () => 25 * 1024 * 1024);
+    const enable = vi.fn(async () => ({ ok: true }));
+    const page = initWeirpackPage({
+      els,
+      store,
+      validate: vi.fn(),
+      githubSettingsStore: {
+        loadSyncSettings: vi.fn(async () => ({ owner: "me", repo: "proofly", token: "secret" })),
+      },
+      syncModeStore: {
+        loadWeirpackSyncSettings: vi.fn(async () => ({ githubEnabled: false, hasUsedGitHub: false })),
+      },
+      syncActions: { enable },
+    });
+    await page.ready;
+
+    expect(els.syncWrap.hidden).toBe(false);
+    expect(els.syncStatus.textContent).toContain("5,600-byte");
+    els.syncToggle.checked = true;
+    els.syncToggle.dispatchEvent(new Event("change"));
+
+    await vi.waitFor(() => expect(enable).toHaveBeenCalledWith({
+      settings: { owner: "me", repo: "proofly", token: "secret" },
+    }));
+    await vi.waitFor(() => expect(els.status.textContent)
+      .toBe("Weirpacks are now synced with GitHub."));
+    expect(els.syncToggle.checked).toBe(true);
+    expect(els.syncStatus.textContent).toContain("larger packs");
+  });
+
+  it("accepts a pack over the Chrome limit in GitHub mode and syncs it immediately", async () => {
+    const els = elements();
+    const store = makeStore();
+    store.maxWeirpackFileBytes = vi.fn(async () => 25 * 1024 * 1024);
+    const sync = vi.fn(async () => ({ ok: true }));
+    const configured = { owner: "me", repo: "proofly", token: "secret" };
+    const page = initWeirpackPage({
+      els,
+      store,
+      validate: vi.fn(async () => ({})),
+      githubSettingsStore: { loadSyncSettings: vi.fn(async () => configured) },
+      syncModeStore: {
+        loadWeirpackSyncSettings: vi.fn(async () => ({ githubEnabled: true, hasUsedGitHub: true })),
+      },
+      syncActions: { sync },
+    });
+    await page.ready;
+    Object.defineProperty(els.file, "files", {
+      configurable: true,
+      value: [{
+        name: "large.weirpack",
+        size: 6_000,
+        arrayBuffer: async () => Uint8Array.from([80, 75, 3, 4]).buffer,
+      }],
+    });
+
+    els.file.dispatchEvent(new Event("change"));
+
+    await vi.waitFor(() => expect(sync).toHaveBeenCalledWith({ settings: configured }));
+    expect(store.saveWeirpack).toHaveBeenCalled();
+    expect(els.status.textContent).toBe("Imported large.weirpack.");
   });
 });
