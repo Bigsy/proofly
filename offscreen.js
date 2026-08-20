@@ -3,7 +3,7 @@ import {
 } from "./vendor/harper/index.js";
 import { binary } from "./vendor/harper/binary.js";
 import { createHarperService } from "./lib/harper-service.js";
-import { MAX_WEIRPACK_FILE_BYTES } from "./lib/weirpack-store.js";
+import { isValidWeirpackByteArray } from "./lib/weirpack-validator.js";
 
 const DIALECT = Object.freeze({
   american: Dialect.American,
@@ -24,9 +24,7 @@ const manifestText = (value, maxLength) =>
 async function validateWeirpack(message) {
   let validator;
   try {
-    if (!Array.isArray(message.bytes)
-      || !message.bytes.length || message.bytes.length > MAX_WEIRPACK_FILE_BYTES
-      || message.bytes.some((byte) => !Number.isInteger(byte) || byte < 0 || byte > 255)) {
+    if (!isValidWeirpackByteArray(message.bytes)) {
       throw new Error("Invalid Weirpack bytes");
     }
     const bytes = Uint8Array.from(message.bytes);
