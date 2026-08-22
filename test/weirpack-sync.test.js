@@ -99,6 +99,35 @@ describe("GitHub Weirpack sync", () => {
       .toEqual([{ id: remote.id, deleted: true, updatedAt: 500 }]);
   });
 
+  it("re-reads the index and retries a removal after a stale-sha conflict", async () => {
+    installChromeStorageStub({}, {});
+    const remote = await pack([1, 2, 3], { updatedAt: 100 });
+    await saveWeirpackTombstones({ [remote.id]: 500 });
+    const client = emptyClient();
+    client.getFile
+      .mockResolvedValueOnce({
+        sha: "index-stale", content: serializeRemoteWeirpackIndex([remote]),
+      })
+      .mockResolvedValueOnce({
+        sha: "index-current", content: serializeRemoteWeirpackIndex([remote]),
+      });
+    client.getFileBytes.mockResolvedValue({ sha: "body-old", bytes: remote.bytes });
+    client.putFile
+      .mockRejectedValueOnce(Object.assign(new Error("weirpacks/index.json does not match index-stale"), {
+        retryableConflict: true,
+        status: 422,
+      }))
+      .mockResolvedValueOnce({ sha: "index-new" });
+
+    await expect(runWeirpackSync({
+      settings, client, forceEnabled: true, now: () => 600,
+    })).resolves.toMatchObject({ ok: true, deletedRemote: 1, packCount: 0 });
+
+    expect(client.getFile).toHaveBeenCalledTimes(2);
+    expect(client.putFile.mock.calls.map(([, , options]) => options.sha))
+      .toEqual(["index-stale", "index-current"]);
+  });
+
   it("migrates Chrome packs only after the first GitHub upload succeeds", async () => {
     installChromeStorageStub({}, {});
     const saved = await saveWeirpack({ name: "small.weirpack", bytes: Uint8Array.from([1, 2, 3]) });

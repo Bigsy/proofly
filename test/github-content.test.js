@@ -34,6 +34,20 @@ describe("GitHubContentClient", () => {
     });
     expect(fetchImpl.mock.calls[0][0]).toContain("/repos/me/notes/contents/notes/a.json");
     expect(fetchImpl.mock.calls[0][1].headers.Authorization).toBe("Bearer tok");
+    expect(fetchImpl.mock.calls[0][1].cache).toBe("no-store");
+  });
+
+  it("bypasses the browser cache for reads but not repository writes", async () => {
+    const fetchImpl = vi.fn()
+      .mockResolvedValueOnce(jsonResponse({ type: "file", sha: "old", content: b64("old") }))
+      .mockResolvedValueOnce(jsonResponse({ content: { sha: "new" } }));
+    const client = new GitHubContentClient({ owner: "me", repo: "notes", token: "tok", fetchImpl });
+
+    await client.getFile("index.json");
+    await client.putFile("index.json", "new", { sha: "old" });
+
+    expect(fetchImpl.mock.calls[0][1].cache).toBe("no-store");
+    expect(fetchImpl.mock.calls[1][1]).not.toHaveProperty("cache");
   });
 
   it("returns null for a missing file", async () => {
