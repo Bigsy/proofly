@@ -9,6 +9,7 @@
     "test:browser": "playwright test test/browser",
     "test:watch": "vitest",
     "lint": "eslint .",
+    "check:harper-update": "node tools/check-harper-update.mjs",
     "vendor:harper": "bash tools/vendor-harper.sh",
     "vendor:harper:check": "bash tools/vendor-harper.sh --check",
     "verify:harper": "node tools/verify-harper.mjs",
