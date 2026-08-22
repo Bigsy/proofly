@@ -4,7 +4,9 @@ set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$root"
 
-bash tools/vendor-harper.sh --check
+# Keep stdout machine-readable: the release workflow captures this script's
+# output as the archive path. Verification detail still belongs in the logs.
+bash tools/vendor-harper.sh --check >&2
 
 version="$(node -p "require('./manifest.json').version")"
 stamp="$(date +%Y%m%d-%H%M%S)"
