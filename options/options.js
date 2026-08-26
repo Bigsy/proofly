@@ -18,6 +18,8 @@ import {
   clearSyncSettings, loadSyncSettings, onSyncSettingsChanged, saveSyncSettings,
 } from "../lib/sync-settings.js";
 import { initDictionaryPage } from "../ui/dictionary-page.js";
+import { initDocumentsPage } from "../ui/documents-page.js";
+import { listIndex, listNotes, mergeNotes } from "../lib/notes-store.js";
 import { initSyncPage } from "../ui/sync-page.js";
 import {
   loadWeirpackIndex, maxWeirpackFileBytes, onWeirpacksChanged, removeWeirpack, saveWeirpack,
@@ -53,6 +55,25 @@ initDictionaryPage({
   store: {
     loadDictionary, loadDictionarySettings, addWords, removeWord, clearDictionary,
     setDictionarySyncEnabled, onDictionaryChanged, onDictionarySettingsChanged,
+  },
+});
+
+initDocumentsPage({
+  els: {
+    count: $("docsCount"),
+    importFile: $("docsImportFile"),
+    importBtn: $("importDocsBtn"),
+    exportBtn: $("exportDocsBtn"),
+    status: $("docsTransferStatus"),
+  },
+  store: { listIndex, listNotes, mergeNotes },
+  // Push imported notes to GitHub when sync is connected; otherwise the side
+  // panel's scheduler picks them up from local storage on its next run.
+  sync: async () => {
+    const settings = await loadSyncSettings();
+    if (!settings) return false;
+    await runSync({ settings });
+    return true;
   },
 });
 

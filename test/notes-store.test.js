@@ -9,6 +9,8 @@ import {
   deleteNote,
   getNote,
   listIndex,
+  listNotes,
+  mergeNotes,
   newId,
   replaceAllNotes,
   saveNote,
@@ -171,5 +173,50 @@ describe("newId", () => {
     expect(typeof a).toBe("string");
     expect(a.length).toBeGreaterThan(0);
     expect(a).not.toBe(b);
+  });
+});
+
+describe("listNotes", () => {
+  it("returns full records in index order, ignoring orphan bodies", async () => {
+    installLocal({
+      noteIndex: [
+        { id: "old", title: "Old", snippet: "", updatedAt: 1 },
+        { id: "new", title: "New", snippet: "", updatedAt: 2 },
+      ],
+      "note:old": { id: "old", body: "Old", createdAt: 1, updatedAt: 1 },
+      "note:new": { id: "new", body: "New", createdAt: 2, updatedAt: 2 },
+      "note:ghost": { id: "ghost", body: "boo", createdAt: 0, updatedAt: 0 },
+    });
+    expect((await listNotes()).map((n) => n.id)).toEqual(["new", "old"]);
+  });
+
+  it("is empty without chrome.storage", async () => {
+    expect(await listNotes()).toEqual([]);
+  });
+});
+
+describe("mergeNotes", () => {
+  it("keeps the notes' own timestamps, writes bodies before the single index rewrite", async () => {
+    const { data, ops } = installLocal({
+      noteIndex: [{ id: "keep", title: "Keep", snippet: "", updatedAt: 5 }],
+      "note:keep": { id: "keep", body: "Keep", createdAt: 5, updatedAt: 5 },
+    });
+    await mergeNotes([
+      { id: "a", body: "A title\nbody", createdAt: 10, updatedAt: 20 },
+      { id: "keep", body: "Keep v2", createdAt: 5, updatedAt: 30 },
+      { id: "bad" },                       // no updatedAt → dropped
+      { id: "a", body: "dup", updatedAt: 99 }, // duplicate id → dropped
+    ]);
+    expect(ops.map((o) => o.keys.join(","))).toEqual(["note:a", "note:keep", "noteIndex,schemaVersion"]);
+    expect(data["note:a"]).toEqual({ id: "a", body: "A title\nbody", createdAt: 10, updatedAt: 20 });
+    expect(data["note:keep"].updatedAt).toBe(30);
+    expect((await listIndex()).map((e) => [e.id, e.title, e.updatedAt]))
+      .toEqual([["keep", "Keep v2", 30], ["a", "A title", 20]]);
+  });
+
+  it("is a no-op for an empty batch", async () => {
+    const { ops } = installLocal();
+    expect(await mergeNotes([])).toEqual([]);
+    expect(ops).toEqual([]);
   });
 });

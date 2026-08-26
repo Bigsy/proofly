@@ -105,6 +105,28 @@
 
       <section class="section">
         <div class="section-head">
+          <h2>Documents</h2>
+          <p class="muted">
+            Back up every note in the side panel's Docs library as one JSON file,
+            or restore from one. Import adds notes you don't have and updates
+            existing notes only when the file's copy is newer — it never deletes.
+          </p>
+        </div>
+        <div class="card">
+          <input id="docsImportFile" type="file" accept=".json,application/json" hidden />
+          <div class="bulk-row bulk-row--topless">
+            <span id="docsCount" class="muted"></span>
+            <div class="list-actions push-right">
+              <button id="importDocsBtn" class="btn" type="button">Import…</button>
+              <button id="exportDocsBtn" class="btn btn--primary" type="button">Export all</button>
+            </div>
+          </div>
+          <p id="docsTransferStatus" class="muted transfer-status" role="status"></p>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-head">
           <h2>Harper Weirpacks</h2>
           <p class="muted">
             Add custom Harper dictionaries and rules. Small packs can use
