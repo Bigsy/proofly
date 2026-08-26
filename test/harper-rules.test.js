@@ -28,7 +28,7 @@ describe("Proofly Harper rule configuration", () => {
     })).not.toBe(revision);
     expect(configurationRevision({
       ...base,
-      weirpacks: [{ id: "doccla", bytes: [1, 2, 3] }],
+      weirpacks: [{ id: "acme", bytes: [1, 2, 3] }],
     })).not.toBe(revision);
   });
 });

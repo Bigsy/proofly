@@ -114,7 +114,7 @@ describe("Harper service", () => {
       dialect: "american",
       words: ["Proofly"],
       ruleOverrides: { LongSentences: false },
-      weirpacks: [{ id: "doccla", bytes: [80, 75, 3, 4] }],
+      weirpacks: [{ id: "acme", bytes: [80, 75, 3, 4] }],
       configurationRevision: 1,
     })).resolves.toMatchObject({ type: "harper:configured", configurationRevision: 1 });
     expect(first.loadWeirpackFromBytes).toHaveBeenCalledWith([80, 75, 3, 4]);

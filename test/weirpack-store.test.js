@@ -12,9 +12,9 @@ describe("synced Weirpack store", () => {
     installChromeStorageStub();
     const bytes = Uint8Array.from([80, 75, 3, 4, 9]);
     const saved = await saveWeirpack({
-      name: "doccla.weirpack",
+      name: "acme.weirpack",
       bytes,
-      manifest: { author: "Bill", version: "1.0.0", description: "Doccla terms" },
+      manifest: { author: "Bill", version: "1.0.0", description: "Acme terms" },
     });
 
     const calls = chrome.storage.sync.set.mock.calls;

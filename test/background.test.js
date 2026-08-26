@@ -266,7 +266,7 @@ describe("Harper offscreen lifecycle", () => {
     const stub = makeChromeWorkerStub({
       sync: {
         [WEIRPACK_INDEX_KEY]: [{
-          id, name: "doccla.weirpack", size: bytes.length,
+          id, name: "acme.weirpack", size: bytes.length,
           author: "Bill", version: "1.0.0", description: "",
         }],
         [`${WEIRPACK_KEY_PREFIX}${id}`]: {
@@ -275,7 +275,7 @@ describe("Harper offscreen lifecycle", () => {
       },
     });
     const { forwardHarperRequest, handlePageStorageRequest } = await loadBackgroundWorker(stub);
-    await forwardHarperRequest({ type: "harper:lint", requestId: 8, text: "doccla" });
+    await forwardHarperRequest({ type: "harper:lint", requestId: 8, text: "acme" });
 
     expect(stub.runtimeMessages[0]).toMatchObject({
       type: "harper:configure",
@@ -283,7 +283,7 @@ describe("Harper offscreen lifecycle", () => {
     });
     const pageSnapshot = await handlePageStorageRequest({ type: PAGE_STORAGE_GET });
     expect(pageSnapshot).not.toHaveProperty("weirpacks");
-    expect(JSON.stringify(pageSnapshot)).not.toContain("doccla.weirpack");
+    expect(JSON.stringify(pageSnapshot)).not.toContain("acme.weirpack");
   });
 
   it("configures Harper from the local working copy in GitHub Weirpack mode", async () => {

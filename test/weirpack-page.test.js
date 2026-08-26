@@ -49,12 +49,12 @@ describe("Weirpack options page", () => {
     const els = elements();
     const store = makeStore();
     const validate = vi.fn(async () => ({
-      author: "Bill", version: "1.0.0", description: "Doccla vocabulary",
+      author: "Bill", version: "1.0.0", description: "Acme vocabulary",
     }));
     const page = initWeirpackPage({ els, store, validate });
     await page.ready;
     const file = {
-      name: "doccla.weirpack",
+      name: "acme.weirpack",
       size: 4,
       arrayBuffer: async () => Uint8Array.from([80, 75, 3, 4]).buffer,
     };
@@ -65,9 +65,9 @@ describe("Weirpack options page", () => {
 
     expect(validate).toHaveBeenCalledWith(Uint8Array.from([80, 75, 3, 4]));
     expect(store.saveWeirpack).toHaveBeenCalled();
-    expect(els.list.textContent).toContain("doccla.weirpack · Bill · v1.0.0");
-    expect(els.list.textContent).toContain("Doccla vocabulary");
-    expect(els.status.textContent).toBe("Imported doccla.weirpack.");
+    expect(els.list.textContent).toContain("acme.weirpack · Bill · v1.0.0");
+    expect(els.list.textContent).toContain("Acme vocabulary");
+    expect(els.status.textContent).toBe("Imported acme.weirpack.");
   });
 
   it("surfaces validation failures without saving", async () => {
