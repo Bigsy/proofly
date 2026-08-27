@@ -28,6 +28,20 @@ describe("baseline eligibility locks", () => {
     expect(mock.ledger.instances[0].proofreadCalls).toEqual(["I seen it."]);
   });
 
+  it("activates GitHub's dynamically mounted inline review textarea despite spellcheck=false", async () => {
+    const mock = createMockProofreader({ availability: "available" });
+    await loadContentPage({ mock, html: '<main id="mount"></main>' });
+    const thread = document.createElement("div");
+    thread.dataset.markerId = "thread-1";
+    thread.innerHTML = '<textarea id="field" aria-label="Markdown value" spellcheck="false"></textarea>';
+    document.getElementById("mount").appendChild(thread);
+    focusField(field());
+    typeInField("This coment needs proofreading.");
+    await tick(1000);
+    expect(mock.ledger.instances).toHaveLength(1);
+    expect(mock.ledger.instances[0].proofreadCalls).toEqual(["This coment needs proofreading."]);
+  });
+
   it("does not broaden ordinary contenteditable eligibility beyond textbox-role composers", () => {
     const editor = document.createElement("div");
     editor.setAttribute("contenteditable", "true");

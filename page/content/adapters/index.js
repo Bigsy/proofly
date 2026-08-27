@@ -5,6 +5,7 @@ import { ckeditor5Adapter } from "./ckeditor5.js";
 import { codeMirrorAdapter } from "./codemirror.js";
 import { draftJSAdapter } from "./draftjs.js";
 import { formAdapter } from "./form.js";
+import { githubReviewAdapter } from "./github-review.js";
 import { lexicalAdapter } from "./lexical.js";
 import { prosemirrorAdapter } from "./prosemirror.js";
 import { quillAdapter } from "./quill.js";
@@ -13,6 +14,7 @@ import { tinyMCEAdapter } from "./tinymce.js";
 import { trixAdapter } from "./trix.js";
 
 export const EDITOR_ADAPTERS = Object.freeze([
+  githubReviewAdapter,
   formAdapter,
   prosemirrorAdapter,
   ckeditor5Adapter,

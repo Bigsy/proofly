@@ -15,6 +15,7 @@ export const DEFAULT_EDITOR_ADAPTER_FLAGS = Object.freeze({
   enabled: true,
   debug: false,
   adapters: Object.freeze({
+    "github-review": true,
     form: true,
     contenteditable: true,
     prosemirror: true,

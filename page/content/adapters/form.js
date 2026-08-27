@@ -13,10 +13,19 @@ export function isFormField(el) {
 }
 
 export function isEligibleFormField(el) {
-  if (!isFormField(el) || el.disabled || el.readOnly) return false;
+  if (!isUsableFormField(el)) return false;
   // The page's own "don't check this" signal (code-editor textareas, ID
   // fields) — same self-only check as the contenteditable adapter's.
   if (el.getAttribute?.("spellcheck") === "false") return false;
+  return true;
+}
+
+// Physical form-field eligibility without interpreting spellcheck=false.
+// Site/editor adapters may reuse the textarea snapshot and writeback contract
+// when a known prose editor disables the browser's native spellchecker for
+// reasons that do not amount to a "do not proofread" signal.
+export function isUsableFormField(el) {
+  if (!isFormField(el) || el.disabled || el.readOnly) return false;
   if (el.getAttribute?.("aria-readonly") === "true") return false;
   if (el.getAttribute?.("aria-hidden") === "true" || el.closest?.("[aria-hidden='true']")) return false;
   return true;
