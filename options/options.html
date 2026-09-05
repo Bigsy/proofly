@@ -13,6 +13,26 @@
     </header>
 
     <main>
+      <section class="section" id="proofreading-rules">
+        <div class="section-head">
+          <h2>Proofreading rules</h2>
+          <p class="muted">Choose what Harper checks in notes and enabled websites. Offensive-language suggestions are off by default.</p>
+        </div>
+        <div class="card">
+          <label class="field">
+            <span>Search rules</span>
+            <input id="ruleSearch" type="search" placeholder="Try curses, spelling, or punctuation…" />
+          </label>
+          <div class="bulk-row">
+            <label><input id="ruleCustomOnly" type="checkbox" /> Only my changes</label>
+            <button id="ruleReset" class="btn push-right" type="button" disabled>Reset all rules</button>
+          </div>
+          <p id="ruleStatus" class="muted" role="status"></p>
+          <button id="ruleRetry" class="btn" type="button" hidden>Retry</button>
+          <p id="ruleCount" class="muted" aria-live="polite"></p>
+          <div id="ruleList" class="rule-list"></div>
+        </div>
+      </section>
       <section class="section">
         <div class="section-head">
           <h2>Sync between computers</h2>

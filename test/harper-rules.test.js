@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
-  configurationRevision, HARPER_RULE_OVERRIDES,
+  configurationRevision, effectiveRuleOverrides, HARPER_RULE_OVERRIDES, parseRuleOverrides, ruleCatalog,
 } from "../lib/harper-rules.js";
 
 describe("Proofly Harper rule configuration", () => {
-  it("disables only the broad LongSentences diagnostic", () => {
-    expect(HARPER_RULE_OVERRIDES).toEqual({ LongSentences: false });
+  it("disables broad sentence advice and unsolicited censorship by default", () => {
+    expect(HARPER_RULE_OVERRIDES).toEqual({ LongSentences: false, AvoidCurses: false });
   });
 
   it("revisions the complete canonical configuration", () => {
@@ -31,4 +31,20 @@ describe("Proofly Harper rule configuration", () => {
       weirpacks: [{ id: "acme", bytes: [1, 2, 3] }],
     })).not.toBe(revision);
   });
+});
+
+it("validates overrides, preserves future names, and keeps long sentences locked off", () => {
+  expect(parseRuleOverrides({ FutureRule: false, AvoidCurses: true, SpellCheck: null, bad: "false" }))
+    .toEqual({ FutureRule: false, AvoidCurses: true });
+  expect(effectiveRuleOverrides({ LongSentences: true, AvoidCurses: true }))
+    .toEqual({ LongSentences: false, AvoidCurses: true });
+});
+
+it("uses resolved defaults instead of structured config's unset state", () => {
+  const rules = ruleCatalog({ settings: [{ Group: { label: "Style", child: {
+    settings: [{ Bool: { name: "AvoidCurses", state: false } }],
+  } } }] }, { AvoidCurses: true, SpellCheck: true }, { AvoidCurses: "Censors words" },
+  { AvoidCurses: false });
+  expect(rules[0]).toMatchObject({ name: "AvoidCurses", group: "Style", defaultEnabled: false });
+  expect(rules[1]).toMatchObject({ name: "SpellCheck", defaultEnabled: true });
 });

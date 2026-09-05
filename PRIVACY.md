@@ -1,6 +1,6 @@
 # Proofly Privacy Policy
 
-Last updated: July 25, 2026
+Last updated: September 5, 2026
 
 Proofly is a Chrome extension for private, on-device proofreading. The extension
 does not operate a server, does not sell user data, and does not use user data
@@ -25,6 +25,7 @@ Proofly stores the following data in Chrome extension storage:
 - A custom dictionary of words you choose to suppress.
 - Harper Weirpack archives you choose to import.
 - Saved custom rewrite prompts.
+- Proofreading dialect and per-rule preferences (synced through Chrome).
 - The list of sites where you have enabled Proofly.
 - Optional GitHub sync settings, if you enable notes sync.
 
@@ -56,7 +57,7 @@ When optional GitHub sync is enabled, note data and the GitHub token are sent to
 GitHub only to provide the sync feature you configured.
 
 Chrome may sync extension storage, such as your custom dictionary, custom
-prompts, imported Weirpacks, enabled-site list, and optional GitHub sync
+prompts, proofreading preferences, imported Weirpacks, enabled-site list, and optional GitHub sync
 settings, between Chrome profiles signed in to the same Google account
 according to your Chrome sync settings.
 

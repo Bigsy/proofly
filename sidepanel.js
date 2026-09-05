@@ -10,7 +10,7 @@ import {
 } from "./lib/dictionary.js";
 import { addWord, loadDictionary, onDictionaryChanged } from "./lib/dictionary-store.js";
 import {
-  loadProofingSettings, onProofingSettingsChanged, saveProofingSettings,
+  disableHarperRule, loadProofingSettings, onProofingSettingsChanged, saveProofingSettings,
 } from "./lib/proofing-settings-store.js";
 import { deleteNote, getNote, listIndex, newId, saveNote } from "./lib/notes-store.js";
 import { runSync } from "./lib/full-sync.js";
@@ -233,6 +233,7 @@ function refreshUndoButtons() {
 const render = initRender({
   els,
   onApply: applyCorrection,
+  onDisableRule: disableHarperRule,
   onSelectSuggestion: selectSuggestion,
   onAddToDictionary: addToDictionary,
   onDismiss: dismissCorrection,
@@ -569,6 +570,7 @@ els.proofingDialect.addEventListener("change", () => {
   refreshUndoButtons();
   els.proofingDialect.value = (await loadProofingSettings()).dialect;
   onProofingSettingsChanged(({ dialect }) => {
+    render.hidePopup(); // Old popup indices must not address the refreshed result.
     els.proofingDialect.value = dialect;
     if (!els.editorView.hidden && els.editor.value.trim()) runProofread();
   });

@@ -4,7 +4,8 @@ import {
 } from "vitest";
 import { Dialect, LocalLinter } from "../vendor/harper/index.js";
 import { binary } from "../vendor/harper/binary.js";
-import { normalizeHarperLints } from "../lib/harper-corrections.js";
+import { normalizeHarperLints, normalizeOrganizedHarperLints } from "../lib/harper-corrections.js";
+import { effectiveRuleOverrides } from "../lib/harper-rules.js";
 import corpus from "./fixtures/harper-reviewed-corpus.json";
 
 const DIALECTS = {
@@ -151,4 +152,32 @@ describe("pinned Harper 2.7.0 informational diagnostics", () => {
     });
     expect(issues[0].explanation).not.toBe("");
   });
+});
+
+it("disables censorship without losing spelling checks, including after a dialect change", async () => {
+  for (const dialect of [Dialect.American, Dialect.British]) {
+    await linter.setDialect(dialect);
+    await linter.setLintConfig(effectiveRuleOverrides({ AvoidCurses: true }));
+    const enabled = await lint("He is shitting.");
+    expect(enabled.some((item) => item.correction?.includes("*"))).toBe(true);
+    await linter.setLintConfig(effectiveRuleOverrides());
+    expect(await lint("He is shitting.")).toEqual([]);
+    expect((await lint("This is a sentnce.")).some((item) => item.correction === "sentence")).toBe(true);
+  }
+});
+
+it("organized results keep rule identity and the same overlap filtering as normal lint", async () => {
+  const texts = [REPORTED_LONG_SENTENCE, "He is shitting. This is a sentnce.",
+    "I would argue that this is correct.", ...corpus.rules.map((sample) => sample.input)];
+  for (const text of texts) {
+    const raw = await linter.organizedLints(text, { language: "plaintext" });
+    try {
+      const corrections = normalizeOrganizedHarperLints(text, raw);
+      expect(corrections.map(({ rule, ...correction }) => correction)).toEqual(await lint(text));
+      expect(corrections.every((correction) => typeof correction.rule === "string")).toBe(true);
+      if (text.includes("shitting")) expect(corrections.find((c) => c.correction === "****ting").rule).toBe("AvoidCurses");
+    } finally {
+      Object.values(raw).flat().forEach((item) => item.free());
+    }
+  }
 });

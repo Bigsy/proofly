@@ -33,6 +33,11 @@ import {
 import { validateWeirpack } from "../lib/weirpack-validator.js";
 import { initWeirpackPage } from "../ui/weirpack-page.js";
 
+import { initHarperRulesPage } from "../ui/harper-rules-page.js";
+import {
+  loadProofingSettings, onProofingSettingsChanged, saveProofingSettings,
+} from "../lib/proofing-settings-store.js";
+
 const $ = (id) => document.getElementById(id);
 
 initDictionaryPage({
@@ -144,4 +149,13 @@ initSyncPage({
   recoverNotesSync,
   diagnosticStore: { loadSyncDiagnostic, recordSyncError, clearSyncDiagnostic },
   recoveryStore: { loadRecoveryBackup },
+});
+
+initHarperRulesPage({
+  els: {
+    search: $("ruleSearch"), customOnly: $("ruleCustomOnly"), list: $("ruleList"),
+    count: $("ruleCount"), reset: $("ruleReset"), status: $("ruleStatus"), retry: $("ruleRetry"),
+  },
+  store: { loadProofingSettings, onProofingSettingsChanged, saveProofingSettings },
+  loadRules: () => chrome.runtime.sendMessage({ type: "harper:rules" }),
 });

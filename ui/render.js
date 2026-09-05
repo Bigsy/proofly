@@ -23,7 +23,7 @@ import { buildCorrectionCard } from "./correction-card.js";
 import { ICON_PATHS, svgIcon } from "./icons.js";
 
 export function initRender({
-  els, onApply, onAddToDictionary, onSelectSuggestion, onDismiss, getCandidate, syncScroll,
+  els, onApply, onDisableRule, onAddToDictionary, onSelectSuggestion, onDismiss, getCandidate, syncScroll,
 }) {
   // Draw the wavy underlines: a transparent mirror of the text with the
   // erroneous spans wrapped in <span class="squiggle">, sitting behind the textarea.
@@ -70,6 +70,7 @@ export function initRender({
       // in-page popup — see page/content/).
       const word = getCandidate?.(c) ?? null;
       const li = buildCorrectionCard(text, c, {
+        onDisableRule,
         onApply: () => onApply(i),
         onSelectSuggestion: (replacement) => onSelectSuggestion?.(i, replacement),
         onAddToDictionary: word && onAddToDictionary ? () => onAddToDictionary(i) : undefined,
@@ -86,6 +87,7 @@ export function initRender({
 
     els.popup.textContent = "";
     const card = buildCorrectionCard(text, c, {
+      onDisableRule,
       showExplanation: false,
       showAdviceExplanation: false,
       onSelectSuggestion: (replacement) => onSelectSuggestion?.(i, replacement),

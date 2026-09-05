@@ -70,6 +70,14 @@ is enabled.
   friendly category badges, explanations, and per-item **Apply**; advice cards
   contain context and an explanation but no fake replacement or Apply action.
   **Apply all corrections** is disabled when the result contains advice only.
+- **Proofreading rules** — Settings has a searchable, grouped list of Harper
+  checks. Choose On, Off, or Default for each rule; filter to your changes or
+  reset them all. Choices sync through Chrome and apply to notes and enabled
+  websites. `AvoidCurses` is off by default, so swearing is not censored.
+  Suggestions show their source rule and a **Turn off this rule** action. This
+  saves the same preference without changing your text; re-enable it in Settings.
+  `LongSentences` remains locked off to keep whole-sentence advice from hiding
+  useful fixes.
 - **English dialect setting** — Auto follows the browser locale (falling back
   to American), or choose American, British, Australian, Canadian, or Indian.
 - **Rewrite (tone) dropdown** — rewrites the whole editor text with Chrome's
@@ -293,8 +301,8 @@ sync server. Proofreading and rewriting still run on-device.
   `I seen two loafs yesterday`; the reviewed corpus records these boundaries.
 - Proofly disables Harper's `LongSentences` rule. In Harper 2.7.0 that
   whole-sentence, advice-only diagnostic can hide useful spelling and grammar
-  fixes under the engine's normal overlap removal. Other advice rules remain
-  enabled and appear as non-applicable writing suggestions.
+  fixes under the engine's normal overlap removal. Other advice rules follow
+  your rule settings and appear as non-applicable writing suggestions.
 - Chrome's optional Rewriter API is experimental and flag names/availability
   can change between Chrome releases. It is invoked only by an explicit
   Rewrite action, never while typing.

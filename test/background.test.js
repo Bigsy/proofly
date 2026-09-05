@@ -8,7 +8,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { ALL_SITES_PATTERN, SITES_KEY } from "../lib/sites.js";
 import {
   DICTIONARY_SYNC_SET, PAGE_ADAPTER_FLAGS_CHANGED, PAGE_DICTIONARY_CHANGED, PAGE_DICTIONARY_UPDATE,
-  PAGE_PROOFING_SETTINGS_CHANGED, PAGE_STORAGE_GET,
+  PAGE_PROOFING_SETTINGS_CHANGED, PAGE_RULE_DISABLE, PAGE_STORAGE_GET,
 } from "../lib/storage-broker.js";
 import { EDITOR_ADAPTER_FLAGS_KEY } from "../page/content/adapter-flags.js";
 import {
@@ -250,7 +250,7 @@ describe("Harper offscreen lifecycle", () => {
     expect(configure).toMatchObject({
       type: "harper:configure", target: "harper:offscreen", dialect: "british",
       words: ["Acme", "Proofly"],
-      ruleOverrides: { LongSentences: false },
+      ruleOverrides: { LongSentences: false, AvoidCurses: false },
       weirpacks: [],
     });
     expect(lint).toMatchObject({
@@ -588,4 +588,23 @@ describe("per-tab icon state", () => {
     // onActivated re-reads the tab from chrome.tabs — still other.net there.
     expect(stub.lastActionByTab(5).setBadgeText.text).toBe("OFF");
   });
+});
+
+it("serializes rule disables, preserves other preferences, and returns no private data", async () => {
+  const stub = makeChromeWorkerStub({ sync: {
+    proofingSettings: { dialect: "british", ruleOverrides: { FutureRule: true } },
+    notesSyncSettings: { token: "private" },
+  } });
+  const { handlePageStorageRequest, forwardHarperRequest } = await loadBackgroundWorker(stub);
+  expect(await Promise.all(["AvoidCurses", "SpellCheck"].map((rule) =>
+    handlePageStorageRequest({ type: PAGE_RULE_DISABLE, rule, dialect: "american" })))).toEqual([{ ok: true }, { ok: true }]);
+  expect(await stub.chrome.storage.sync.get("proofingSettings")).toEqual({ proofingSettings: {
+    dialect: "british", ruleOverrides: { FutureRule: true, AvoidCurses: false, SpellCheck: false },
+  } });
+  await forwardHarperRequest({ type: "harper:lint", requestId: 99, text: "test" });
+  expect(stub.runtimeMessages.filter((m) => m.type === "harper:configure").at(-1).ruleOverrides)
+    .toMatchObject({ AvoidCurses: false, SpellCheck: false, LongSentences: false });
+  for (const rule of [null, "", "__proto__", "not a rule", 123]) {
+    await expect(handlePageStorageRequest({ type: PAGE_RULE_DISABLE, rule })).rejects.toThrow("Invalid Harper rule");
+  }
 });

@@ -18,7 +18,7 @@ import {
 import { candidateWord, createMatcher, filterCorrections, isEligible } from "../../lib/dictionary.js";
 import { addWord, loadDictionary, onDictionaryChanged } from "../../lib/dictionary-store.js";
 import { originPattern, samePattern } from "../../lib/sites.js";
-import { onProofingSettingsChanged } from "../../lib/proofing-settings-store.js";
+import { disableHarperRule, onProofingSettingsChanged } from "../../lib/proofing-settings-store.js";
 import { createSupersedeSlot } from "../../lib/supersede.js";
 import { adapterForField } from "./adapters/index.js";
 import {
@@ -436,6 +436,7 @@ function onClick(e) {
     const c = result.corrections[i];
     renderer.showPopup(result.text, c, i, e.clientX, e.clientY, {
       onApply: applyFix,
+      onDisableRule: disableHarperRule,
       onSelectSuggestion: selectFixSuggestion,
       // Only suppressible corrections get the button — eligibility is decided
       // here so highlights.js stays dumb about dictionary logic.

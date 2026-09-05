@@ -40,3 +40,11 @@ describe("proofing settings", () => {
     expect(await loadProofingSettings()).toEqual({ dialect: "auto" });
   });
 });
+
+it("preserves rule overrides when changing dialect and removes them on reset", async () => {
+  installChromeStorageStub({ proofingSettings: { dialect: "british", ruleOverrides: { AvoidCurses: true, FutureRule: false } } });
+  expect(await saveProofingSettings({ dialect: "canadian" })).toEqual({
+    dialect: "canadian", ruleOverrides: { AvoidCurses: true, FutureRule: false },
+  });
+  expect(await saveProofingSettings({ ruleOverrides: {} })).toEqual({ dialect: "canadian" });
+});

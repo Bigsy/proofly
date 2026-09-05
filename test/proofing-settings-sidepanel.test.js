@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
+import { createMockProofreader } from "./helpers/mock-proofreader.js";
 import { $, loadPage, settle } from "./helpers/page.js";
 
 afterEach(() => { document.documentElement.innerHTML = ""; });
@@ -18,4 +19,16 @@ describe("side-panel dialect setting", () => {
     await chrome.storage.sync.set({ proofingSettings: { dialect: "canadian" } });
     expect($("proofingDialect").value).toBe("canadian");
   });
+});
+
+it("closes a stale popup before a rule change refreshes its correction indices", async () => {
+  const mock = createMockProofreader({ results: [{ corrections: [
+    { startIndex: 0, endIndex: 3, correction: "good", rule: "SpellCheck" },
+  ] }] });
+  await loadPage({ text: "bad", mock });
+  $("editor").setSelectionRange(1, 1);
+  $("editor").dispatchEvent(new MouseEvent("click", { bubbles: true }));
+  expect($("popup").hidden).toBe(false);
+  await chrome.storage.sync.set({ proofingSettings: { dialect: "auto", ruleOverrides: { SpellCheck: false } } });
+  expect($("popup").hidden).toBe(true);
 });

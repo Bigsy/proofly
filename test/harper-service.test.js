@@ -23,9 +23,10 @@ function makeLint({ start = 0, end = 3, replacement = "good" } = {}) {
 }
 
 function makeWorker() {
-  return {
+  const worker = {
     setup: vi.fn(async () => {}),
     lint: vi.fn(async () => []),
+    getDefaultLintConfig: vi.fn(async () => ({})),
     getLintConfig: vi.fn(async () => ({ LongSentences: null })),
     setLintConfig: vi.fn(async () => {}),
     setDialect: vi.fn(async () => {}),
@@ -34,6 +35,8 @@ function makeWorker() {
     loadWeirpackFromBytes: vi.fn(async () => undefined),
     dispose: vi.fn(async () => {}),
   };
+  worker.organizedLints = vi.fn(async (...args) => ({ SpellCheck: await worker.lint(...args) }));
+  return worker;
 }
 
 describe("Harper service", () => {
@@ -169,7 +172,7 @@ describe("Harper service", () => {
 
     expect(result).toMatchObject({
       type: "harper:result", requestId: "panel:1",
-      corrections: [{ startIndex: 0, endIndex: 3, correction: "good" }],
+      corrections: [{ startIndex: 0, endIndex: 3, correction: "good", rule: "SpellCheck" }],
     });
     expect(worker.lint).toHaveBeenCalledWith("bad", { language: "plaintext" });
     expect(rawLint.free).toHaveBeenCalledOnce();
@@ -263,4 +266,15 @@ describe("Harper service", () => {
     expect(worker.dispose).toHaveBeenCalledOnce();
     expect(service.status().state).toBe("disposed");
   });
+});
+
+it("can enable a rule missing from the sparse active config", async () => {
+  const worker = makeWorker();
+  worker.getDefaultLintConfig.mockResolvedValue({ SpellCheck: true, AvoidCurses: true });
+  worker.getLintConfig.mockResolvedValue({ AvoidCurses: false });
+  const service = createHarperService({ createLinter: async () => worker });
+  await service.handle({ type: "harper:configure", dialect: "american", words: [],
+    ruleOverrides: { AvoidCurses: false, SpellCheck: false }, configurationRevision: 1 });
+  expect(worker.setLintConfig).toHaveBeenCalledWith({ AvoidCurses: false, SpellCheck: false });
+  await service.dispose();
 });

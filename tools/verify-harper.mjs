@@ -17,12 +17,12 @@ const coldStarted = performance.now();
 await linter.setup();
 const coldMs = performance.now() - coldStarted;
 const text = ("However this is wierd text. ").repeat(150).slice(0, 4000);
-const warmup = await linter.lint(text, { language: "plaintext" });
-warmup.forEach((lint) => lint.free());
+const warmup = await linter.organizedLints(text, { language: "plaintext" });
+Object.values(warmup).flat().forEach((lint) => lint.free());
 const warmStarted = performance.now();
-const result = await linter.lint(text, { language: "plaintext" });
+const result = await linter.organizedLints(text, { language: "plaintext" });
 const warmMs = performance.now() - warmStarted;
-result.forEach((lint) => lint.free());
+Object.values(result).flat().forEach((lint) => lint.free());
 const rssDeltaBytes = process.memoryUsage().rss - rssBefore;
 linter.dispose();
 

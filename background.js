@@ -19,7 +19,7 @@ import {
   parseProofingSettings, PROOFING_SETTINGS_KEY, resolveDialect,
 } from "./lib/proofing-settings.js";
 import {
-  configurationRevision, HARPER_RULE_OVERRIDES,
+  configurationRevision, effectiveRuleOverrides, parseRuleOverrides,
 } from "./lib/harper-rules.js";
 import {
   DEFAULT_EDITOR_ADAPTER_FLAGS, EDITOR_ADAPTER_FLAGS_KEY, normalizeEditorAdapterFlags,
@@ -30,10 +30,11 @@ import {
 import { WEIRPACK_SYNC_SETTINGS_KEY } from "./lib/weirpack-sync-settings.js";
 import {
   DICTIONARY_SYNC_SET, PAGE_ADAPTER_FLAGS_CHANGED, PAGE_DICTIONARY_CHANGED, PAGE_DICTIONARY_UPDATE,
-  PAGE_PROOFING_SETTINGS_CHANGED, PAGE_STORAGE_GET,
+  PAGE_PROOFING_SETTINGS_CHANGED, PAGE_RULE_DISABLE, PAGE_STORAGE_GET,
 } from "./lib/storage-broker.js";
 
 const HARPER_OFFSCREEN_URL = "offscreen.html";
+let ruleMutationTail = Promise.resolve();
 let harperCreationPromise = null;
 let harperOperationTail = Promise.resolve();
 let dictionaryMutationTail = Promise.resolve();
@@ -84,7 +85,8 @@ async function hasHarperOffscreen() {
 }
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  if (message?.type === PAGE_STORAGE_GET
+  if (message?.type === PAGE_RULE_DISABLE
+    || message?.type === PAGE_STORAGE_GET
     || message?.type === PAGE_DICTIONARY_UPDATE
     || message?.type === DICTIONARY_SYNC_SET) {
     handlePageStorageRequest(message)
@@ -122,6 +124,23 @@ export async function pageStorageSnapshot() {
 }
 
 export async function handlePageStorageRequest(message) {
+  if (message?.type === PAGE_RULE_DISABLE) {
+    if (typeof message.rule !== "string"
+      || !Object.hasOwn(parseRuleOverrides({ [message.rule]: false }), message.rule)) {
+      throw new Error("Invalid Harper rule");
+    }
+    const operation = async () => {
+      await storageAccessReady;
+      const data = await chrome.storage.sync.get(PROOFING_SETTINGS_KEY);
+      const settings = parseProofingSettings(data?.[PROOFING_SETTINGS_KEY]);
+      settings.ruleOverrides = { ...settings.ruleOverrides, [message.rule]: false };
+      await chrome.storage.sync.set({ [PROOFING_SETTINGS_KEY]: settings });
+      return { ok: true };
+    };
+    const result = ruleMutationTail.then(operation, operation);
+    ruleMutationTail = result.catch(() => {});
+    return result;
+  }
   if (message?.type === PAGE_STORAGE_GET) {
     return { ok: true, ...await pageStorageSnapshot() };
   }
@@ -156,7 +175,7 @@ async function storedHarperConfiguration() {
   const config = {
     dialect: resolveDialect(settings, chrome.i18n.getUILanguage()),
     words,
-    ruleOverrides: { ...HARPER_RULE_OVERRIDES },
+    ruleOverrides: effectiveRuleOverrides(settings.ruleOverrides),
     weirpacks: storedWeirpacks.map(({ id, bytes }) => ({ id, bytes: Array.from(bytes) })),
   };
   return { ...config, configurationRevision: configurationRevision(config) };
@@ -177,7 +196,7 @@ export function configureHarperFromStorage() {
 }
 
 export function forwardHarperRequest(message) {
-  if (message?.type !== "harper:lint") return sendToHarper(message);
+  if (!["harper:lint", "harper:rules"].includes(message?.type)) return sendToHarper(message);
   return enqueueHarperOperation(async () => {
     let configured = await configureHarperFromStorageNow();
     if (configured?.type === "harper:error") return configured;

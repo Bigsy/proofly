@@ -1,6 +1,6 @@
 # Harper rollout verification
 
-Pinned engine: Harper 2.7.0. Last updated: 2026-08-01.
+Pinned engine: Harper 2.7.0. Last updated: 2026-09-05.
 
 ## Automated release gates
 
@@ -113,3 +113,51 @@ Completed on Chrome Beta 151.0.7922.19 using the dedicated profile:
 - Store editor, alternative-suggestion, and library screenshots were recaptured
   from the final UI and rebuilt at 1280×800. Store copy now names Harper rather
   than Chrome AI as the proofing engine.
+
+## Rule settings verification — 2026-09-05
+
+- `npm test`: 723 tests passed; focused rule UI tests also passed after the
+  final singular/plural copy adjustment. Lint and `git diff --check` passed.
+- Harper runtime budget verification and vendor hash checks passed.
+- Browser fixtures in a fresh isolated Chrome Beta profile: 21/22 passed in
+  the full run. DraftJS's cursor assertion returned offset 2 instead of 5;
+  that test passed in isolated reruns on both unchanged HEAD and this change.
+  Treat the full-run failure as an observed intermittent failure, not a clean
+  full-suite pass. Sandbox browser launches aborted; the suite ran outside
+  the sandbox without using the dedicated MCP profile.
+- Real Chrome Beta smoke test used a temporary extension copy because the
+  connected MCP server rejected the workspace install path. The copy was
+  uninstalled before deletion. Settings displayed 823 runtime rules, search
+  narrowed to Avoid Curses, and the page had no console warnings/errors.
+- With Avoid Curses enabled, `He is shitting.` produced the screenshot's exact
+  censoring/euphemism alternatives. Returning the control to Default removed
+  that diagnostic; `sentnce` still produced `sentence`. Changing dialect to
+  British preserved the saved rule choice, and reset preserved the dialect.
+- Rule metadata uses the complete default catalogue: Harper's active
+  `getLintConfig()` becomes sparse after applying overrides. Structured
+  config supplies grouping, not resolved default states.
+
+## Disable a rule from a suggestion — 2026-09-05
+
+- `npm test`: 729 passed. New coverage verifies rule identity, normal dedup
+  equivalence across the reviewed corpus, broker validation and serialized
+  mutations, both popup actions, retry after a failed save, and closing a
+  stale side-panel popup when preferences change.
+- Browser fixtures: 21/22 passed; the previously observed DraftJS cursor
+  assertion failed in the full run and passed in its isolated rerun.
+- Lint, vendor hashes, and the updated performance gate passed. The gate now
+  measures organizedLints, matching the service path: cold setup 537 ms and
+  warm 4,000-character lint 23 ms in this run.
+- Chrome Beta with real packaged Harper: the side-panel popup and the in-page
+  popup on a disposable textarea both showed Rule: Avoid Curses. Turning the
+  rule off saved AvoidCurses: false while retaining the British dialect,
+  preserved the complete input, and left the sentnce spelling correction.
+  The in-page popup closed and its underline count dropped from two to one.
+- The temporary extension copy was used because the connected MCP server's
+  workspace-root restriction rejects direct installation. It is removed after
+  the smoke test; reload the actual development extension to use these changes.
+
+- Final side-panel retest confirmed the stale popup closes, the text stays
+  unchanged, and only the spelling correction remains. The in-page console
+  was clean; the side panel logged an optional Chrome AI text-session service
+  warning, which did not affect packaged Harper proofreading.

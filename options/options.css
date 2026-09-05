@@ -454,3 +454,16 @@ textarea { display: block; width: 100%; }
   font-size: 12px;
 }
 .weirpack .btn { flex: none; padding: 6px 10px; }
+
+/* Search keeps the full runtime rule catalogue manageable. */
+.rule-list { max-height: 520px; overflow-y: auto; }
+.rule-group { border: 0; padding: 0; margin: 18px 0; min-width: 0; }
+.rule-group legend { font-weight: 600; color: var(--accent); }
+.rule-row { display: flex; align-items: center; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.rule-row > span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.rule-row strong, .rule-row small { display: block; }
+.rule-row small { color: var(--muted); margin-top: 4px; }
+.rule-row select { width: 130px; flex-shrink: 0; }
+@media (max-width: 420px) {
+  .rule-row { align-items: stretch; flex-direction: column; gap: 8px; }
+}

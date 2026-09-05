@@ -21,6 +21,7 @@ export function isApplicableCorrection(c) {
 // footer (the popups add their own action rows).
 export function buildCorrectionCard(text, c, {
   onApply,
+  onDisableRule,
   onAddToDictionary,
   onSelectSuggestion,
   onChooseSuggestion,
@@ -185,6 +186,39 @@ export function buildCorrectionCard(text, c, {
       foot.appendChild(add);
     }
     li.appendChild(foot);
+  }
+
+  if (typeof c.rule === "string" && c.rule) {
+    const ruleRow = document.createElement("div");
+    ruleRow.className = "citem__rule";
+    const label = document.createElement("span");
+    label.textContent = `Rule: ${c.rule.replace(/([a-z0-9])([A-Z])/g, "$1 $2")}`;
+    label.title = c.rule;
+    ruleRow.append(label);
+    if (onDisableRule) {
+      const disable = document.createElement("button");
+      disable.type = "button";
+      disable.className = "btn btn--sm citem__disable-rule";
+      disable.textContent = "Turn off this rule";
+      disable.title = "Turn off for all notes and enabled websites. Re-enable in Settings → Proofreading rules.";
+      const status = document.createElement("span");
+      status.className = "citem__rule-status";
+      status.setAttribute("role", "status");
+      disable.addEventListener("click", async () => {
+        if (disable.disabled) return;
+        disable.disabled = true;
+        status.textContent = "Saving…";
+        try {
+          await onDisableRule(c.rule);
+          status.textContent = "Rule turned off. Re-enable in Settings.";
+        } catch {
+          disable.disabled = false;
+          status.textContent = "Could not turn off this rule. Try again.";
+        }
+      });
+      ruleRow.append(disable, status);
+    }
+    li.append(ruleRow);
   }
 
   return li;

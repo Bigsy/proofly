@@ -145,6 +145,12 @@ const SHADOW_CSS = `
     background: var(--panel-2); border: 1px solid;
     border-color: color-mix(in srgb, var(--harper-kind-color, var(--muted)) 33%, transparent);
   }
+
+.citem__rule { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--border); display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
+.citem__rule > span { overflow-wrap: anywhere; }
+.citem__rule-status:empty { display: none; }
+.citem__rule-status { flex-basis: 100%; }
+
   .explain { margin: 8px 0 0; color: var(--muted); font-size: 13px; }
   .citem__suggestions { display: flex; flex-wrap: wrap; gap: 5px; margin: 8px 0 0; padding: 0; border: 0; }
   .citem__suggestions-label { width: 100%; color: var(--muted); font-size: 11px; }
@@ -429,6 +435,7 @@ export function createOverlayRenderer({ doc = document } = {}) {
   function showPopup(text, c, i, clientX, clientY, {
     onApply,
     onAddToDictionary,
+    onDisableRule,
     onSelectSuggestion,
     onDismiss,
   } = {}) {
@@ -442,6 +449,7 @@ export function createOverlayRenderer({ doc = document } = {}) {
     // Ordinary fixes stay compact. buildCorrectionCard always shows the kind
     // and explanation for advice because those are its only useful content.
     const card = buildCorrectionCard(text, c, {
+      onDisableRule,
       showTypes: false,
       showExplanation: false,
       onSelectSuggestion: (replacement) => onSelectSuggestion?.(i, replacement),
