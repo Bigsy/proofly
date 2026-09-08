@@ -16,6 +16,7 @@
 // to native wavy at 1px thickness ("slightly wavy"). Both renderers
 // import squiggleBackground from here so the two geometry paths can't drift.
 
+import { RULE_MENU_STYLES } from "../../ui/rule-menu.js";
 import { usableSpans } from "../../lib/corrections.js";
 import { harperKindMetadata } from "../../lib/harper-types.js";
 import { buildCorrectionCard } from "../../ui/correction-card.js";
@@ -129,9 +130,9 @@ const SHADOW_CSS = `
   .popup[hidden] { display: none; }
   .citem__head {
     display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-    padding-right: 30px;
+    padding-right: var(--popup-action-space, 30px);
   }
-  .popup--has-dictionary .citem__head { padding-right: 62px; }
+
   .chip { padding: 2px 8px; border-radius: 7px; font-weight: 600; font-size: 13px; }
   .chip--from { background: var(--from); color: var(--from-text); text-decoration: line-through; }
   .chip--to { background: var(--to); color: var(--to-text); }
@@ -146,10 +147,7 @@ const SHADOW_CSS = `
     border-color: color-mix(in srgb, var(--harper-kind-color, var(--muted)) 33%, transparent);
   }
 
-.citem__rule { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--border); display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
-.citem__rule > span { overflow-wrap: anywhere; }
-.citem__rule-status:empty { display: none; }
-.citem__rule-status { flex-basis: 100%; }
+${RULE_MENU_STYLES}
 
   .explain { margin: 8px 0 0; color: var(--muted); font-size: 13px; }
   .citem__suggestions { display: flex; flex-wrap: wrap; gap: 5px; margin: 8px 0 0; padding: 0; border: 0; }
@@ -260,7 +258,8 @@ export function createOverlayRenderer({ doc = document } = {}) {
     if (!popupEl.hidden && !e.composedPath().includes(popupEl)) hidePopup();
   }
   function onDocKeydown(e) {
-    if (e.key === "Escape") hidePopup();
+    if (e.key === "Escape"
+      && !e.composedPath().some((node) => node.classList?.contains("rule-menu__panel"))) hidePopup();
   }
 
   // `position: fixed` is only viewport-relative until an ancestor has a
@@ -486,6 +485,9 @@ export function createOverlayRenderer({ doc = document } = {}) {
       if (!popupEl.hidden && activeIndex === i && onDismiss) onDismiss(i);
       else hidePopup();
     });
+    const ruleMenu = popupEl.querySelector(".rule-menu");
+    if (ruleMenu) actions.append(ruleMenu);
+    popupEl.style.setProperty("--popup-action-space", `${30 + (onAddToDictionary ? 32 : 0) + (ruleMenu ? 32 : 0)}px`);
     actions.append(dismiss);
     popupEl.appendChild(actions);
 
@@ -505,6 +507,7 @@ export function createOverlayRenderer({ doc = document } = {}) {
 
   function hidePopup() {
     if (!popupEl || popupEl.hidden) return;
+    popupEl.querySelectorAll(".rule-menu__panel").forEach((panel) => panel.hidePopover());
     popupEl.hidden = true;
     activeIndex = -1;
     rerender(); // drop the tint

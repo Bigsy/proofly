@@ -17,6 +17,7 @@
 // renderResult there is the seam between proofreading and rendering — so
 // every function here takes the text + corrections it should draw.
 
+import { RULE_MENU_STYLES } from "./rule-menu.js";
 import { usableSpans } from "../lib/corrections.js";
 import { harperKindMetadata } from "../lib/harper-types.js";
 import { buildCorrectionCard } from "./correction-card.js";
@@ -25,6 +26,12 @@ import { ICON_PATHS, svgIcon } from "./icons.js";
 export function initRender({
   els, onApply, onDisableRule, onAddToDictionary, onSelectSuggestion, onDismiss, getCandidate, syncScroll,
 }) {
+  if (!document.getElementById("proofly-rule-menu-styles")) {
+    const style = document.createElement("style");
+    style.id = "proofly-rule-menu-styles";
+    style.textContent = RULE_MENU_STYLES;
+    document.head.append(style);
+  }
   // Draw the wavy underlines: a transparent mirror of the text with the
   // erroneous spans wrapped in <span class="squiggle">, sitting behind the textarea.
   function renderBackdrop(text, corrections) {
@@ -124,6 +131,9 @@ export function initRender({
       if (onDismiss) onDismiss(i);
       else hidePopup();
     });
+    const ruleMenu = els.popup.querySelector(".rule-menu");
+    if (ruleMenu) actions.append(ruleMenu);
+    els.popup.style.setProperty("--popup-action-space", `${30 + (word && onAddToDictionary ? 32 : 0) + (ruleMenu ? 32 : 0)}px`);
     actions.append(dismiss);
     els.popup.appendChild(actions);
 
@@ -142,6 +152,7 @@ export function initRender({
   }
 
   function hidePopup() {
+    els.popup.querySelectorAll(".rule-menu__panel").forEach((panel) => panel.hidePopover());
     els.popup.hidden = true;
   }
 

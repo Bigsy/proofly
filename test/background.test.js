@@ -8,7 +8,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { ALL_SITES_PATTERN, SITES_KEY } from "../lib/sites.js";
 import {
   DICTIONARY_SYNC_SET, PAGE_ADAPTER_FLAGS_CHANGED, PAGE_DICTIONARY_CHANGED, PAGE_DICTIONARY_UPDATE,
-  PAGE_PROOFING_SETTINGS_CHANGED, PAGE_RULE_DISABLE, PAGE_STORAGE_GET,
+  PAGE_PROOFING_SETTINGS_CHANGED, PAGE_RULE_DISABLE, PAGE_RULE_RESTORE, PAGE_STORAGE_GET,
 } from "../lib/storage-broker.js";
 import { EDITOR_ADAPTER_FLAGS_KEY } from "../page/content/adapter-flags.js";
 import {
@@ -597,7 +597,7 @@ it("serializes rule disables, preserves other preferences, and returns no privat
   } });
   const { handlePageStorageRequest, forwardHarperRequest } = await loadBackgroundWorker(stub);
   expect(await Promise.all(["AvoidCurses", "SpellCheck"].map((rule) =>
-    handlePageStorageRequest({ type: PAGE_RULE_DISABLE, rule, dialect: "american" })))).toEqual([{ ok: true }, { ok: true }]);
+    handlePageStorageRequest({ type: PAGE_RULE_DISABLE, rule, dialect: "american" })))).toEqual([{ ok: true, previous: null }, { ok: true, previous: null }]);
   expect(await stub.chrome.storage.sync.get("proofingSettings")).toEqual({ proofingSettings: {
     dialect: "british", ruleOverrides: { FutureRule: true, AvoidCurses: false, SpellCheck: false },
   } });
@@ -607,4 +607,22 @@ it("serializes rule disables, preserves other preferences, and returns no privat
   for (const rule of [null, "", "__proto__", "not a rule", 123]) {
     await expect(handlePageStorageRequest({ type: PAGE_RULE_DISABLE, rule })).rejects.toThrow("Invalid Harper rule");
   }
+});
+
+
+it("restores the previous rule override without replacing intervening settings", async () => {
+  const stub = makeChromeWorkerStub({ sync: {
+    proofingSettings: { dialect: "british", ruleOverrides: { Hedging: true } },
+  } });
+  const { handlePageStorageRequest } = await loadBackgroundWorker(stub);
+  const { previous } = await handlePageStorageRequest({ type: PAGE_RULE_DISABLE, rule: "Hedging" });
+  expect(previous).toBe(true);
+  await handlePageStorageRequest({ type: PAGE_RULE_DISABLE, rule: "RepeatedWords" });
+  await handlePageStorageRequest({ type: PAGE_RULE_RESTORE, rule: "Hedging", previous });
+  await handlePageStorageRequest({ type: PAGE_RULE_RESTORE, rule: "RepeatedWords", previous: null });
+  expect(await stub.chrome.storage.sync.get("proofingSettings")).toEqual({ proofingSettings: {
+    dialect: "british", ruleOverrides: { Hedging: true },
+  } });
+  await expect(handlePageStorageRequest({ type: PAGE_RULE_RESTORE, rule: "Hedging", previous: "on" }))
+    .rejects.toThrow("Invalid Harper rule state");
 });

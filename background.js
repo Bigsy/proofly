@@ -30,7 +30,7 @@ import {
 import { WEIRPACK_SYNC_SETTINGS_KEY } from "./lib/weirpack-sync-settings.js";
 import {
   DICTIONARY_SYNC_SET, PAGE_ADAPTER_FLAGS_CHANGED, PAGE_DICTIONARY_CHANGED, PAGE_DICTIONARY_UPDATE,
-  PAGE_PROOFING_SETTINGS_CHANGED, PAGE_RULE_DISABLE, PAGE_STORAGE_GET,
+  PAGE_PROOFING_SETTINGS_CHANGED, PAGE_RULE_DISABLE, PAGE_RULE_RESTORE, PAGE_STORAGE_GET,
 } from "./lib/storage-broker.js";
 
 const HARPER_OFFSCREEN_URL = "offscreen.html";
@@ -85,7 +85,7 @@ async function hasHarperOffscreen() {
 }
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  if (message?.type === PAGE_RULE_DISABLE
+  if (message?.type === PAGE_RULE_DISABLE || message?.type === PAGE_RULE_RESTORE
     || message?.type === PAGE_STORAGE_GET
     || message?.type === PAGE_DICTIONARY_UPDATE
     || message?.type === DICTIONARY_SYNC_SET) {
@@ -124,7 +124,10 @@ export async function pageStorageSnapshot() {
 }
 
 export async function handlePageStorageRequest(message) {
-  if (message?.type === PAGE_RULE_DISABLE) {
+  if (message?.type === PAGE_RULE_DISABLE || message?.type === PAGE_RULE_RESTORE) {
+    if (message.type === PAGE_RULE_RESTORE && message.previous !== null && typeof message.previous !== "boolean") {
+      throw new Error("Invalid Harper rule state");
+    }
     if (typeof message.rule !== "string"
       || !Object.hasOwn(parseRuleOverrides({ [message.rule]: false }), message.rule)) {
       throw new Error("Invalid Harper rule");
@@ -133,9 +136,13 @@ export async function handlePageStorageRequest(message) {
       await storageAccessReady;
       const data = await chrome.storage.sync.get(PROOFING_SETTINGS_KEY);
       const settings = parseProofingSettings(data?.[PROOFING_SETTINGS_KEY]);
-      settings.ruleOverrides = { ...settings.ruleOverrides, [message.rule]: false };
+      const previous = settings.ruleOverrides?.[message.rule] ?? null;
+      settings.ruleOverrides = { ...settings.ruleOverrides };
+      if (message.type === PAGE_RULE_DISABLE) settings.ruleOverrides[message.rule] = false;
+      else if (message.previous === null) delete settings.ruleOverrides[message.rule];
+      else settings.ruleOverrides[message.rule] = message.previous;
       await chrome.storage.sync.set({ [PROOFING_SETTINGS_KEY]: settings });
-      return { ok: true };
+      return { ok: true, previous };
     };
     const result = ruleMutationTail.then(operation, operation);
     ruleMutationTail = result.catch(() => {});

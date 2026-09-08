@@ -74,8 +74,9 @@ is enabled.
   checks. Choose On, Off, or Default for each rule; filter to your changes or
   reset them all. Choices sync through Chrome and apply to notes and enabled
   websites. `AvoidCurses` is off by default, so swearing is not censored.
-  Suggestions show their source rule and a **Turn off this rule** action. This
-  saves the same preference without changing your text; re-enable it in Settings.
+  Non-spelling suggestions offer **Turn off “Rule name”** in the **⋯** menu.
+  A brief confirmation offers **Undo**; rules can also be re-enabled in Settings.
+  Spelling suggestions keep **Add to dictionary** without a rule-disable action.
   `LongSentences` remains locked off to keep whole-sentence advice from hiding
   useful fixes.
 - **English dialect setting** — Auto follows the browser locale (falling back

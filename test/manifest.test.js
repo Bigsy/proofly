@@ -9,6 +9,7 @@ describe("manifest module exposure", () => {
     expect(resources).toContain("page/content/bridge/*");
     expect(resources).toContain("lib/*");
     expect(resources).toContain("ui/correction-card.js");
+    expect(resources).toContain("ui/rule-menu.js");
     expect(resources).toContain("ui/icons.js");
   });
 
