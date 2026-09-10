@@ -1,6 +1,6 @@
 # Harper rollout verification
 
-Pinned engine: Harper 2.7.0. Last updated: 2026-09-05.
+Pinned engine: Harper 2.10.0. Last updated: 2026-09-10.
 
 ## Automated release gates
 
@@ -161,3 +161,16 @@ Completed on Chrome Beta 151.0.7922.19 using the dedicated profile:
   unchanged, and only the spelling correction remains. The in-page console
   was clean; the side panel logged an optional Chrome AI text-session service
   warning, which did not affect packaged Harper proofreading.
+
+## Harper 2.10.0 upgrade — 2026-09-10
+
+- Reviewed upstream v2.10.0 release notes and upgraded the exact npm pin from
+  2.7.0, replacing the vendored JS/WASM assets and SHA-256 hashes. The packaged
+  Apache-2.0 licence now attributes Automattic Inc.; notices match it.
+- All 733 tests passed, including the unchanged reviewed 2.7.0 corpus; its
+  original provenance is retained. All 24 browser regression tests passed
+  outside the sandbox with temporary profiles (sandboxed Chrome aborted).
+- Lint, vendor hash validation, store packaging, and diff whitespace checks
+  passed. Runtime: 15.66 MiB installed, 7.82 MiB compressed, 585 ms cold setup,
+  28 ms warm 4,000-character lint. An initial measurement alongside the test
+  suites exceeded timing budgets; the isolated measurement above passed.

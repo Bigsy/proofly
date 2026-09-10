@@ -1,7 +1,7 @@
 # Third-party notices
 
-Proofly includes **Harper 2.7.0** (`harper.js` and its packaged WebAssembly
-runtime), Copyright 2022 Elijah Potter and Harper contributors.
+Proofly includes **Harper 2.10.0** (`harper.js` and its packaged WebAssembly
+runtime), Copyright 2024 Automattic Inc. (as stated in the packaged licence).
 
 Harper is licensed under the Apache License, Version 2.0. The complete licence
 text distributed with the runtime is at `vendor/harper/LICENSE`.

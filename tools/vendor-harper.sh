@@ -8,17 +8,17 @@ mode="${1:-copy}"
 
 files=(
   "dist/index.js"
-  "dist/BinaryModule-Aj1vLnwf.js"
+  "dist/BinaryModule-BmeyZWwZ.js"
   "dist/binary.js"
   "dist/harper_wasm_bg.wasm"
   "LICENSE"
 )
 hashes=(
-  "8332e02000e07fa6625765c3f3de6d75787181586fd6d4a607b1d263af42e926"
-  "e7d39bb29884349a0f629813f9b317d631edb7963fda2d9c9ac5b9c8a2e8829c"
-  "6c408881cf9d54a32bf7a732b63e0b190132d32b250c34dc8128d50f5174dda0"
-  "116210e8c7ceaa8c7834145179ed09885c9d3a3cad83c1f6174c00d5da7970f2"
-  "516659b5ebca507444fa0fc6ed97a01863ce081c2a04771c6f0cd7befcef1008"
+  "de18e31a528c6c571af7a16016ae63ebe1979afdf386a49897db22f9247ee041"
+  "8728c2c143a4437929401149390170372874d1aa4376dc0f517dd3518aa88015"
+  "7623c819545784398760337050620f949a5c750bc594a2938e7db8432e20e04c"
+  "d20b944d75acf59cd0e75ffff57663628f0aa06294b05cc0bbc719f91f9270d7"
+  "fbc8f1bffe04ab962340fabb1324d57d8b875070f67759d606516144ee53ac19"
 )
 
 if [[ "$mode" != "copy" && "$mode" != "--check" ]]; then
@@ -27,8 +27,8 @@ if [[ "$mode" != "copy" && "$mode" != "--check" ]]; then
 fi
 
 actual_version="$(node -p "require('$source_dir/package.json').version" 2>/dev/null || true)"
-if [[ "$actual_version" != "2.7.0" ]]; then
-  echo "harper.js 2.7.0 must be installed (found: ${actual_version:-missing})" >&2
+if [[ "$actual_version" != "2.10.0" ]]; then
+  echo "harper.js 2.10.0 must be installed (found: ${actual_version:-missing})" >&2
   exit 1
 fi
 
@@ -71,4 +71,4 @@ if [[ "${#extras[@]}" -ne "${#files[@]}" ]]; then
   exit 1
 fi
 
-echo "Harper 2.7.0 vendor assets verified"
+echo "Harper 2.10.0 vendor assets verified"

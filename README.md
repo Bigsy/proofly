@@ -5,7 +5,7 @@ Get from store: https://chromewebstore.google.com/detail/proofly/amocofppfkjehin
 </p>
 
 **Proofly** is a Chrome extension for **private, on-device proofreading**,
-powered by the packaged **Harper 2.7.0** English proofing engine. It puts an
+powered by the packaged **Harper 2.10.0** English proofing engine. It puts an
 editor pane in the browser **side panel** — you type, and grammar, spelling,
 punctuation, capitalization, usage and style feedback comes back in real time
 without downloading an AI model. It also **spell checks ordinary websites**:
@@ -114,7 +114,7 @@ is enabled.
 | --- | --- |
 | Browser | **Chrome 141+**, desktop only |
 | OS | Windows, macOS, Linux, or ChromeOS |
-| Proofreading | Packaged Harper 2.7.0; works offline immediately; runtime is about 15 MiB installed |
+| Proofreading | Packaged Harper 2.10.0; works offline immediately; runtime is about 15 MiB installed |
 | Rewrite (optional) | Chrome's flag-gated Rewriter API, backed by its on-device Gemini Nano model |
 
 > Not supported on Android, iOS, or non–Chromebook Plus ChromeOS.
@@ -300,7 +300,7 @@ sync server. Proofreading and rewriting still run on-device.
 - Harper is deterministic spelling, grammar, punctuation, and style tooling,
   not a contextual AI proofreader. Known misses include
   `I seen two loafs yesterday`; the reviewed corpus records these boundaries.
-- Proofly disables Harper's `LongSentences` rule. In Harper 2.7.0 that
+- Proofly disables Harper's `LongSentences` rule. In Harper 2.10.0 that
   whole-sentence, advice-only diagnostic can hide useful spelling and grammar
   fixes under the engine's normal overlap removal. Other advice rules follow
   your rule settings and appear as non-applicable writing suggestions.
