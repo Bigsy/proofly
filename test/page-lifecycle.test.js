@@ -78,6 +78,26 @@ describe("lint-on-pause", () => {
 });
 
 describe("the visibility/focus hard gate", () => {
+  it("preserves a keyboard-focused correction popup when the window returns", async () => {
+    const mock = mockWith(seenFixture, () => ({ corrections: [] }));
+    await loadContentPage({ mock });
+    stubFieldGeometry();
+    stubRangeRects([{ left: 10, top: 10, width: 60, height: 16 }]);
+    focusField();
+    typeInField(BAD);
+    await tick(1100);
+    clickFieldAt(3);
+    const choice = pagePopup().querySelector(".citem__choice");
+    choice.focus();
+    setWindowFocused(false);
+    setWindowFocused(true);
+    await tick(20);
+    expect(pagePopup().hidden).toBe(false);
+    choice.click();
+    await settle();
+    expect(field().value).toBe("I saw it.");
+  });
+
   it("hiding the tab cancels the pending debounce — no engine call — and the catch-up runs on return", async () => {
     const mock = mockWith(seenFixture);
     await loadContentPage({ mock });

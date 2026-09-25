@@ -140,6 +140,43 @@ test.afterAll(async () => {
   await new Promise((resolve) => server?.close(resolve));
 });
 
+test("focused composer detection recovers after a missed activation and a frozen tab", async () => {
+  test.skip(!!preflightSkip, preflightSkip);
+  const page = await context.newPage();
+  await page.goto(`${baseURL}/contenteditable.html`);
+  await injectProofly(page);
+  await expect(page.locator("html[data-proofly-test-stub='loaded']")).toHaveCount(1, { timeout: 5000 });
+  // Focus while ineligible, then let the editor become writable without a
+  // second focus event (as a lazily initialized composer can do).
+  await page.evaluate(() => {
+    const wrapper = document.createElement("div");
+    wrapper.className = "ql-container";
+    wrapper.innerHTML = '<div id="recovery-composer" class="ql-editor" contenteditable="true" role="textbox" aria-readonly="true" style="width:400px;min-height:80px"><p>I seen it.</p></div>';
+    document.body.appendChild(wrapper);
+    const editor = wrapper.firstElementChild;
+    editor.focus();
+    editor.removeAttribute("aria-readonly");
+    editor.querySelector("p").dispatchEvent(new InputEvent("input", { bubbles: true }));
+  });
+  const squiggles = page.locator("#proofly-highlight-host .squiggle-box");
+  await expect(squiggles).toHaveCount(1);
+
+  // Real Chromium lifecycle transition; after thawing, its retained focused
+  // editor must still respond to input without a page reload.
+  const cdp = await context.newCDPSession(page);
+  try {
+    await cdp.send("Page.setWebLifecycleState", { state: "frozen" });
+    await cdp.send("Page.setWebLifecycleState", { state: "active" });
+    await page.bringToFront();
+    await page.locator("#recovery-composer").press("End");
+    await page.keyboard.type(" teh");
+    await expect(squiggles).toHaveCount(2);
+    await expect(page.locator("#recovery-composer")).toContainText("teh");
+  } finally {
+    await cdp.detach();
+  }
+});
+
 test("controlled textarea fixture runs through the extension content path", async () => {
   test.skip(!!preflightSkip, preflightSkip);
   const page = await context.newPage();

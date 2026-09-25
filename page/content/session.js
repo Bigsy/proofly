@@ -65,7 +65,13 @@ export function createRootWatcher(field, notify, classifyRecord) {
     const kind = classifyMutationBatch(relevant, classifyRecord);
     if (kind) notify(kind);
   });
-  observer.observe(rootNode, {
+  // Only child-list changes outside the editor matter (root removal/moves).
+  // Keep expensive text/attribute records and their old values scoped to the
+  // field. Include outer trees so removing a shadow host is caught as well.
+  for (let tree = rootNode; tree; tree = tree.host?.getRootNode?.()) {
+    observer.observe(tree, { subtree: true, childList: true });
+  }
+  observer.observe(field, {
     subtree: true,
     childList: true,
     characterData: true,
@@ -210,7 +216,7 @@ export class EditorSession {
   }
 
   startPoll() {
-    if (this.pollTimer) return;
+    if (this.pollTimer || !this.host.gateOpen() || !this.host.hasResult()) return;
     this.pollTimer = setInterval(() => {
       if (!this.isActive() || !this.host.hasResult() || !this.host.gateOpen()) return;
       if (!this.field.isConnected) {

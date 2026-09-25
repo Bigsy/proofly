@@ -74,6 +74,21 @@ function makeSession(options) {
 }
 
 describe("EditorSession snapshot ownership", () => {
+  it("does not start geometry polling without visible results in a focused tab", () => {
+    const { session } = makeSession();
+    session.startPoll();
+    expect(session.pollTimer).toBeNull();
+    session.host.hasResult = () => true;
+    session.host.gateOpen = () => false;
+    session.startPoll();
+    expect(session.pollTimer).toBeNull();
+    session.host.gateOpen = () => true;
+    session.startPoll();
+    expect(session.pollTimer).not.toBeNull();
+    session.dispose();
+    expect(session.pollTimer).toBeNull();
+  });
+
   it("currentText disposes its temporary snapshot", () => {
     const { session, field, snapshots } = makeSession();
     field.value = "I seen it.";

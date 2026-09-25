@@ -24,12 +24,11 @@ import { adapterForField } from "./adapters/index.js";
 import {
   adapterEnabled, loadEditorAdapterFlags, normalizeEditorAdapterFlags, watchEditorAdapterFlags,
 } from "./adapter-flags.js";
-import { isEligibleField } from "./detect.js";
 import { createPageEngine } from "./engine.js";
 import { declaredFieldLanguage, isSupportedFieldLanguage } from "./language.js";
 import { createOverlayRenderer } from "./highlights.js";
 import { createProofreadWindowsForText, mergeWindowCorrections } from "./proofread-window.js";
-import { eventBelongsToField, resolveActiveField, resolveFieldFromEvent } from "./resolve.js";
+import { deepActiveElement, eventBelongsToField, resolveActiveField, resolveFieldFromEvent } from "./resolve.js";
 import { EditorSession } from "./session.js";
 
 // Longer than the side panel's 700 ms: arbitrary pages can contain large
@@ -158,6 +157,7 @@ function activeField() {
 function clearResult() {
   result?.snapshot?.dispose?.();
   result = null;
+  activeSession?.stopPoll();
 }
 
 function visibleCorrections(text, corrections, matcher, snapshot, field = activeField()) {
@@ -204,7 +204,7 @@ const sessionHost = {
   requestRender: () => requestRender(),
   deactivate: () => deactivate(),
   runLint: (session) => runLint(session),
-  hasResult: () => !!result,
+  hasResult: () => !!result?.corrections.length,
   resultSnapshot: () => result?.snapshot,
   debounceMs: PAGE_DEBOUNCE_MS,
   pollMs: POLL_MS,
@@ -217,7 +217,7 @@ function applyAdapterFlags(flags) {
   // the flag only takes effect on the next refocus.
   if (!activeSession && !torndown) {
     const field = resolveActiveField(document, adapterFlags);
-    if (field && isEligibleField(field, adapterFlags)) activate(field);
+    if (field) activate(field);
   }
 }
 
@@ -327,25 +327,27 @@ function requestRender() {
   raf(() => {
     renderQueued = false;
     const field = activeField();
-    if (!field || !result) return;
+    if (!field || !result || !gateOpen()) return;
     if (!field.isConnected) {
       deactivate();
       return;
     }
     if (result.snapshot?.kind === "dom") renderer.renderSnapshot(field, result.snapshot, result.corrections);
     else renderer.render(field, result.text, result.corrections);
+    if (result.corrections.length) activeSession.startPoll();
+    else activeSession.stopPoll();
   });
 }
 
 // ---------- field activation ----------
 function activate(field) {
+  if (torndown || !field?.isConnected || !isSupportedFieldLanguage(field)) return;
   if (field === activeField()) return;
   deactivate();
   const adapter = adapterForField(field, adapterFlags);
-  if (!adapter) return; // caller checked eligibility under the same flags
+  if (!adapter) return;
   activeSession = new EditorSession(field, adapter, sessionHost);
   trackTemporaryIgnores(activeSession);
-  activeSession.startPoll();
   if (activeSession.currentText().trim()) scheduleLint();
 }
 
@@ -363,7 +365,7 @@ function deactivate() {
 // ---------- event handlers ----------
 function onFocusIn(e) {
   const field = resolveFieldFromEvent(e, adapterFlags);
-  if (field && isEligibleField(field, adapterFlags)) activate(field);
+  if (field && isSupportedFieldLanguage(field)) activate(field);
   else if (adapterFlags.debug) {
     if (!field) console.debug("[proofly] focusin resolved no enabled adapter root", e.target);
     else if (!isSupportedFieldLanguage(field)) {
@@ -384,19 +386,32 @@ function onFocusOut(e) {
   if (eventBelongsToField(e, session.field, adapterFlags)) deactivate();
 }
 
+// A site can make an already-focused editor editable, replace its root, or
+// suppress a focus event. Recover on interaction without scanning the page.
+// Only the actual focused field may claim an event: synthetic input elsewhere
+// must never steal the session. Normal typing keeps the cheap existing path.
+function sessionForEvent(e) {
+  if (activeSession && eventBelongsToField(e, activeSession.field, adapterFlags)) return activeSession;
+  if (torndown || !gateOpen()) return null;
+  const field = resolveFieldFromEvent(e, adapterFlags);
+  if (!field || field !== resolveActiveField(document, adapterFlags)) return null;
+  activate(field);
+  return activeField() === field ? activeSession : null;
+}
+
 // Delegated `input` (capture, so page handlers can't stopPropagation it away):
 // catches typing, paste, drag-drop, cut, autofill — everything.
 function onInput(e) {
-  const session = activeSession;
-  if (!session || !eventBelongsToField(e, session.field, adapterFlags)) return;
+  const session = sessionForEvent(e);
+  if (!session) return;
   // Text changed: nothing in flight is valid any more, and the on-screen
   // squiggles point at old offsets — drop both now, re-lint on pause.
   session.input(e);
 }
 
 function onCompositionStart(e) {
-  const session = activeSession;
-  if (!session || !eventBelongsToField(e, session.field, adapterFlags)) return;
+  const session = sessionForEvent(e);
+  if (!session) return;
   session.compositionStart();
 }
 
@@ -414,9 +429,8 @@ function onKeyUp(e) {
 
 // Click in the field → which correction is under the caret? → popup.
 function onClick(e) {
-  const field = activeField();
-  const session = activeSession;
-  if (!session || !eventBelongsToField(e, field, adapterFlags) || !result) return;
+  const session = sessionForEvent(e);
+  if (!session || !result) return;
   if (!session.resultIsCurrent(result)) {
     // A stale mapping whose repair hasn't landed yet (decoration churn,
     // post-apply normalization) is fixable right here: rebase onto a fresh
@@ -522,32 +536,34 @@ function onResize() {
 }
 
 function onVisibilityChange() {
-  if (document.visibilityState === "hidden") {
-    // Hard gate: cancel the pending debounce, invalidate in-flight work, suspend
-    // the poll — a hidden tab must cost nothing.
-    activeSession?.resetIme();
-    activeSession?.clearDebounce();
-    supersede.invalidate();
-    activeSession?.stopPoll();
-  } else if (activeSession) {
-    activeSession.startPoll();
-    requestRender();
-    // A lint cancelled by hiding left the field unproofread — catch up.
-    if (activeSession.currentText() !== (result?.text ?? null)) scheduleLint();
-  }
+  if (document.visibilityState === "hidden") suspendPage();
+  else resumePage();
 }
 
-// document.hasFocus() is the other half of the gate: window blur (another
-// app/window) cancels like hiding; window focus re-schedules the catch-up.
-function onWindowBlur() {
+function suspendPage() {
   activeSession?.resetIme();
   activeSession?.clearDebounce();
+  activeSession?.stopPoll();
   supersede.invalidate();
 }
 
-function onWindowFocus() {
-  const field = activeField();
-  if (field && activeSession.currentText() !== (result?.text ?? null)) scheduleLint();
+function resumePage() {
+  if (torndown || !gateOpen()) return;
+  // Keyboard focus inside our popup deliberately retains its editor session.
+  const inPopup = deepActiveElement(document)?.getRootNode?.().host?.id === "proofly-highlight-host";
+  const field = inPopup ? activeField() : resolveActiveField(document, adapterFlags);
+  if (!field?.isConnected || !isSupportedFieldLanguage(field)) {
+    deactivate();
+    return;
+  }
+  activate(field);
+  if (!activeSession) return;
+  activeSession.startPoll();
+  requestRender();
+  // Visibility, window focus and pageshow may arrive together. Preserve an
+  // existing debounce rather than delaying the same catch-up repeatedly.
+  if (activeSession.imeState === "idle" && activeSession.debounceTimer == null
+    && activeSession.currentText() !== (result?.text ?? null)) scheduleLint();
 }
 
 // ---------- wiring / teardown ----------
@@ -568,23 +584,27 @@ function init() {
   loadEditorAdapterFlags().then((flags) => { if (!torndown) applyAdapterFlags(flags); });
   unsubscribeAdapterFlags = watchEditorAdapterFlags((flags) => { if (!torndown) applyAdapterFlags(flags); });
 
-  document.addEventListener("focusin", onFocusIn);
-  document.addEventListener("focusout", onFocusOut);
+  document.addEventListener("focusin", onFocusIn, true);
+  document.addEventListener("focusout", onFocusOut, true);
   document.addEventListener("input", onInput, true);
   document.addEventListener("compositionstart", onCompositionStart, true);
   document.addEventListener("compositionend", onCompositionEnd, true);
   document.addEventListener("keyup", onKeyUp, true);
   document.addEventListener("click", onClick, true);
   document.addEventListener("visibilitychange", onVisibilityChange);
+  document.addEventListener("freeze", suspendPage);
+  document.addEventListener("resume", resumePage);
+  window.addEventListener("pagehide", suspendPage);
+  window.addEventListener("pageshow", resumePage);
   window.addEventListener("scroll", onAnyScroll, { capture: true, passive: true });
   window.addEventListener("resize", onResize);
-  window.addEventListener("blur", onWindowBlur);
-  window.addEventListener("focus", onWindowFocus);
+  window.addEventListener("blur", suspendPage);
+  window.addEventListener("focus", resumePage);
 
   // Already focused in an eligible field when we inject (e.g. right after the
   // user enables the site)? Pick it up without waiting for a refocus.
   const field = resolveActiveField(document, adapterFlags);
-  if (field && isEligibleField(field, adapterFlags)) activate(field);
+  if (field) activate(field);
 }
 
 // Full teardown — the SW sends this when the user disables the site (the
@@ -599,18 +619,22 @@ export function teardownPageProofly() {
   unsubscribeDictionary = null;
   unsubscribeAdapterFlags = null;
   unsubscribeProofingSettings = null;
-  document.removeEventListener("focusin", onFocusIn);
-  document.removeEventListener("focusout", onFocusOut);
+  document.removeEventListener("focusin", onFocusIn, true);
+  document.removeEventListener("focusout", onFocusOut, true);
   document.removeEventListener("input", onInput, true);
   document.removeEventListener("compositionstart", onCompositionStart, true);
   document.removeEventListener("compositionend", onCompositionEnd, true);
   document.removeEventListener("keyup", onKeyUp, true);
   document.removeEventListener("click", onClick, true);
   document.removeEventListener("visibilitychange", onVisibilityChange);
+  document.removeEventListener("freeze", suspendPage);
+  document.removeEventListener("resume", resumePage);
+  window.removeEventListener("pagehide", suspendPage);
+  window.removeEventListener("pageshow", resumePage);
   window.removeEventListener("scroll", onAnyScroll, { capture: true });
   window.removeEventListener("resize", onResize);
-  window.removeEventListener("blur", onWindowBlur);
-  window.removeEventListener("focus", onWindowFocus);
+  window.removeEventListener("blur", suspendPage);
+  window.removeEventListener("focus", resumePage);
   renderer.destroy();
 }
 
