@@ -8,16 +8,16 @@ mode="${1:-copy}"
 
 files=(
   "dist/index.js"
-  "dist/BinaryModule-BmeyZWwZ.js"
+  "dist/BinaryModule-S5UABkWQ.js"
   "dist/binary.js"
   "dist/harper_wasm_bg.wasm"
   "LICENSE"
 )
 hashes=(
-  "de18e31a528c6c571af7a16016ae63ebe1979afdf386a49897db22f9247ee041"
-  "8728c2c143a4437929401149390170372874d1aa4376dc0f517dd3518aa88015"
-  "7623c819545784398760337050620f949a5c750bc594a2938e7db8432e20e04c"
-  "d20b944d75acf59cd0e75ffff57663628f0aa06294b05cc0bbc719f91f9270d7"
+  "889c87eaeec733f9508f619f72537839a53ec7c999132583552c5d3046af360f"
+  "289295aebe0757eec195c3e2a2007b8faa2fd4678be4574380cf4489d833bc6c"
+  "7c8080342a87b2ce71f971d403854650ed56f1d9e39d2bfacabe48a7c090c43c"
+  "e2d2998448e29acbf80cc2da768198a4ead4bf0dd838feb16f09373b5fca1e16"
   "fbc8f1bffe04ab962340fabb1324d57d8b875070f67759d606516144ee53ac19"
 )
 
@@ -27,8 +27,8 @@ if [[ "$mode" != "copy" && "$mode" != "--check" ]]; then
 fi
 
 actual_version="$(node -p "require('$source_dir/package.json').version" 2>/dev/null || true)"
-if [[ "$actual_version" != "2.10.0" ]]; then
-  echo "harper.js 2.10.0 must be installed (found: ${actual_version:-missing})" >&2
+if [[ "$actual_version" != "2.13.0" ]]; then
+  echo "harper.js 2.13.0 must be installed (found: ${actual_version:-missing})" >&2
   exit 1
 fi
 
@@ -71,4 +71,4 @@ if [[ "${#extras[@]}" -ne "${#files[@]}" ]]; then
   exit 1
 fi
 
-echo "Harper 2.10.0 vendor assets verified"
+echo "Harper 2.13.0 vendor assets verified"

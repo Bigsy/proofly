@@ -1,6 +1,6 @@
 # Harper rollout verification
 
-Pinned engine: Harper 2.10.0. Last updated: 2026-09-10.
+Pinned engine: Harper 2.13.0. Last updated: 2026-10-16.
 
 ## Automated release gates
 
@@ -23,18 +23,20 @@ clean, a 41-word sentence produces a whole-span `LongSentences`/Readability
 lint with no suggestion, and the reported 49-word reproducer is reduced to that
 single diagnostic by normal overlap removal. With Proofly's managed
 `LongSentences: false` override, the same text exposes nine actionable fixes.
-Representative no-suggestion Formatting, Grammar, Miscellaneous, Typo, Usage,
-and Readability cases are covered.
+Representative no-suggestion Grammar, Miscellaneous, Typo, Usage, and
+Readability cases are covered. Quote spacing now provides two applicable
+alternatives, and the corpus checks their normalized replacements and offsets.
 
 ## Advice and Long Sentences release checks
 
 1. In the side panel, paste the reported 49-word sentence. Confirm there is no
    whole-sentence Readability underline and that the capitalization, spelling,
    and `some how` fixes are available.
-2. Exercise `She whispered "hurry"and left.`, `The city is famous its beaches.`,
-   and `I would argue that this is correct.` Confirm each advice item shows a
+2. Exercise `The city is famous its beaches.` and
+   `I would argue that this is correct.` Confirm each advice item shows a
    friendly category and full explanation without a struck-through source or
-   Apply action.
+   Apply action. For `She whispered "hurry"and left.`, confirm quote spacing
+   offers applicable space-before/space-after alternatives.
 3. Repeat on an opted-in page. Confirm **Dismiss for now** removes only that
    occurrence's underline without editing the text, while outside click and
    Escape remove only the popup and active tint. Type the same issue elsewhere
@@ -174,3 +176,27 @@ Completed on Chrome Beta 151.0.7922.19 using the dedicated profile:
   passed. Runtime: 15.66 MiB installed, 7.82 MiB compressed, 585 ms cold setup,
   28 ms warm 4,000-character lint. An initial measurement alongside the test
   suites exceeded timing budgets; the isolated measurement above passed.
+
+## Harper 2.13.0 upgrade — 2026-10-16
+
+- Reviewed upstream [v2.11.0](https://github.com/Automattic/harper/releases/tag/v2.11.0),
+  [v2.12.0](https://github.com/Automattic/harper/releases/tag/v2.12.0), and
+  [v2.13.0](https://github.com/Automattic/harper/releases/tag/v2.13.0) releases.
+  Updated the exact npm pin from 2.10.0 and refreshed the packaged JS/WASM
+  through the vendor script with new SHA-256 hashes. The licence is unchanged.
+- All 754 unit tests passed, including the unchanged reviewed 2.7.0 fixture.
+  Updated the separate quote-spacing diagnostic expectation: upstream now
+  supplies space-before/space-after replacements instead of advice only.
+- Browser fixtures: 24/25 passed in the full run. The previously documented
+  DraftJS selection assertion returned offset 2 instead of 5 and passed in
+  isolation. Chrome aborted inside the sandbox; both completed runs used fresh
+  temporary profiles outside it.
+- Live Chrome Beta 157 smoke verified the real offscreen WorkerLinter path:
+  `sentnce` offered `sentence`, quote spacing returned both alternatives, and
+  the new `BareWithMe` rule changed `Please bare with me.` to
+  `Please bear with me.`. The side panel reported Ready. Its console contained
+  one optional Chrome AI text-session warning; Harper proofreading succeeded.
+- Lint, vendor hashes, store packaging, and diff whitespace checks passed.
+  Runtime: 19.56 MiB installed, 8.05 MiB compressed, 578 ms cold setup, and
+  24 ms warm 4,000-character lint, all within the existing budgets.
+- `make check-harper-update` confirmed the pin matches npm's live latest tag.

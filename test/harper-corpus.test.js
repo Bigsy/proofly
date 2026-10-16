@@ -135,8 +135,19 @@ describe("pinned Harper informational diagnostics", () => {
     expect(issues.some((issue) => issue.types.includes("readability"))).toBe(false);
   });
 
+  it("offers quote-spacing replacements instead of advice", async () => {
+    const issues = await lint('She whispered "hurry"and left.');
+    expect(issues).toHaveLength(1);
+    expect(issues[0]).toMatchObject({
+      startIndex: 20,
+      endIndex: 21,
+      correction: '" ',
+      suggestions: [{ replacement: '" ' }, { replacement: ' "' }],
+      types: ["formatting"],
+    });
+  });
+
   it.each([
-    ["formatting", 'She whispered "hurry"and left.'],
     ["grammar", "Allow to change approval policy during the running task."],
     ["miscellaneous", "The city is famous its beaches."],
     ["typo", "We need a fully understanding of the risk before launch."],
