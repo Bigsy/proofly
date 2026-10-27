@@ -104,7 +104,7 @@ describe("Harper service", () => {
     expect(worker.setLintConfig).toHaveBeenCalledTimes(2);
   });
 
-  it("loads Weirpacks before user words and rebuilds the linter when packs are removed", async () => {
+  it("loads Weirpacks after user words and rebuilds the linter when packs are removed", async () => {
     const first = makeWorker();
     const second = makeWorker();
     const createLinter = vi.fn()

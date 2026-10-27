@@ -1,6 +1,6 @@
 # Harper rollout verification
 
-Pinned engine: Harper 2.13.0. Last updated: 2026-10-16.
+Pinned engine: Harper 3.0.0. Last updated: 2026-10-27.
 
 ## Automated release gates
 
@@ -200,3 +200,40 @@ Completed on Chrome Beta 151.0.7922.19 using the dedicated profile:
   Runtime: 19.56 MiB installed, 8.05 MiB compressed, 578 ms cold setup, and
   24 ms warm 4,000-character lint, all within the existing budgets.
 - `make check-harper-update` confirmed the pin matches npm's live latest tag.
+
+## Harper 3.0.0 upgrade — 2026-10-27
+
+- Reviewed the [v3.0.0 release](https://github.com/Automattic/harper/releases/tag/v3.0.0)
+  and its breaking [core dictionary change, #2630](https://github.com/Automattic/harper/pull/2630).
+  The core replaces `WordId` with `CanonicalWordId` and `CaseFoldedWordId`;
+  case-insensitive dictionary queries can return multiple orthographic variants,
+  while exact-case queries identify a specific entry. This fixes capitalization
+  collisions and words incorrectly flagged despite being in the dictionary.
+  The breaking change is in the core API: the npm package's public TypeScript
+  declarations, shipped JavaScript, and licence are byte-identical to 2.13.0.
+  Proofly's JavaScript API calls need no v3 migration.
+- Updated the exact npm pin and lockfile, refreshed the WASM through the existing
+  vendor script with its new SHA-256 hash, and updated the user/store notices.
+  The original reviewed 2.7.0 corpus remains unchanged and passes.
+- Added real-runtime coverage for lower-case custom dictionary entries used in
+  mixed casing, word removal, and Weirpacks across dialect changes and removal.
+  This exposed an existing integration issue also reproducible on 2.13.0:
+  `importWords()` discards loaded pack rules, and `setLintConfig()` replaces the
+  active config. The service now imports words before loading packs and merges
+  managed rule changes into the current config, preserving pack enablement.
+- All 756 unit tests and all 25 browser tests passed on the final build. The
+  first browser run hit the previously documented DraftJS cursor assertion;
+  it passed in isolation and in the final full run. Chrome aborted inside the
+  sandbox; completed browser runs used fresh temporary profiles outside it.
+- Live Chrome Beta 157 verified the real offscreen WorkerLinter before and
+  after extension reload: `sentnce` suggested `sentence`, the new `FuzzyLogic`
+  rule suggested `fuzzy logic`, and `Pr`/`PR` remained accepted. A disposable
+  worker verified custom words, managed overrides, pack validation, dialect
+  switching, and removal without changing stored user settings. Status was
+  Ready. The existing optional Chrome AI service warning remained; Harper also
+  probed the unbundled slim WASM before successfully loading the packaged full
+  WASM. No CSP failure blocked proofreading.
+- Lint, vendor hashes, archive integrity/content checks, and diff whitespace
+  checks passed. Runtime: 19.70 MiB installed, 8.09 MiB compressed, 490 ms cold
+  setup, and 24 ms warm 4,000-character lint, all within the existing budgets.
+- `make check-harper-update` confirms 3.0.0 matches npm's live latest tag.

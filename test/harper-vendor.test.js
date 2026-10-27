@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 describe("Harper store assets", () => {
-  it("are the exact pinned 2.13.0 files", () => {
+  it("are the exact pinned 3.0.0 files", () => {
     expect(() => execFileSync("bash", ["tools/vendor-harper.sh", "--check"], {
       cwd: root,
       stdio: "pipe",

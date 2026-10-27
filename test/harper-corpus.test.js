@@ -2,10 +2,11 @@
 import {
   afterAll, beforeAll, beforeEach, describe, expect, it,
 } from "vitest";
-import { Dialect, LocalLinter } from "../vendor/harper/index.js";
+import { Dialect, LocalLinter, packWeirpackFiles } from "../vendor/harper/index.js";
 import { binary } from "../vendor/harper/binary.js";
 import { normalizeHarperLints, normalizeOrganizedHarperLints } from "../lib/harper-corrections.js";
 import { effectiveRuleOverrides } from "../lib/harper-rules.js";
+import { createHarperService } from "../lib/harper-service.js";
 import corpus from "./fixtures/harper-reviewed-corpus.json";
 
 const DIALECTS = {
@@ -75,13 +76,59 @@ describe(`reviewed Harper ${corpus._provenance.version} corpus`, () => {
     });
   }
 
-  it("suppresses a custom product name without rebuilding the linter", async () => {
-    await linter.setDialect(Dialect.American);
-    expect((await lint("Proofly improves text."))).not.toEqual([]);
-    await linter.importWords(["Proofly"]);
-    expect(await lint("Proofly improves text.")).toEqual([]);
+  it.each(["american", "british"])("%s custom words accept casing variants and can be removed", async (dialect) => {
+    await linter.setDialect(DIALECTS[dialect]);
+    const text = "We use Proofly, proofly and PROOFLY.";
+    expect(await lint(text)).not.toEqual([]);
+    // Lower-case dictionary entries intentionally accept casing variants;
+    // exercise that policy against Harper 3's changed core dictionary.
+    await linter.importWords(["proofly"]);
+    expect(await lint(text)).toEqual([]);
     await linter.clearWords();
+    expect(await lint(text)).not.toEqual([]);
   });
+});
+
+it("reapplies real Weirpacks, dictionary words and rules across dialect changes, then removes the pack", async () => {
+  // Synthetic pack: exercise the packaged compiler/runtime without depending
+  // on a user's imported rules or changing recorded fixture provenance.
+  const bytes = [...packWeirpackFiles(new Map([
+    ["manifest.json", JSON.stringify({
+      author: "Proofly", version: "1.0.0", description: "Compatibility test", license: "MIT",
+    })],
+    ["ProoflyTestRule.weir", [
+      "expr main (purple platypus)",
+      'let message "Use blue platypus."',
+      'let description "Proofly compatibility test."',
+      'let becomes "blue platypus"',
+      'test "A purple platypus." "A blue platypus."',
+    ].join("\n")],
+  ]))];
+  const service = createHarperService({
+    createLinter: (dialect) => new LocalLinter({ binary, dialect: DIALECTS[dialect] }),
+    switchDialect: (worker, dialect) => worker.setDialect(DIALECTS[dialect]),
+  });
+  try {
+    for (const [revision, dialect] of ["american", "british", "british"].entries()) {
+      const config = {
+        dialect, configurationRevision: revision, words: ["proofly"],
+        ruleOverrides: effectiveRuleOverrides(),
+        weirpacks: revision < 2 ? [{ id: "synthetic", bytes }] : [],
+      };
+      expect(await service.handle({ type: "harper:configure", ...config }))
+        .toMatchObject({ type: "harper:configured", configurationRevision: revision });
+      const result = await service.handle({
+        type: "harper:lint", dialect, configurationRevision: revision, requestId: revision,
+        text: "We use Proofly. He is shitting. A purple platypus.",
+      });
+      expect(result.type).toBe("harper:result");
+      expect(result.corrections).toEqual(revision < 2
+        ? [expect.objectContaining({ correction: "blue platypus", rule: "ProoflyTestRule" })]
+        : []);
+    }
+  } finally {
+    await service.dispose();
+  }
 });
 
 describe("pinned Harper informational diagnostics", () => {
